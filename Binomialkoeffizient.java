@@ -1,13 +1,13 @@
 /**
- * Eine Instanz enthält für einen Paramter $n$ alle Werte von
+ * Repräsentiert für einen Paramter $n$ alle Werte von
  * $n$ über $k, k = 0, ..., n$.
  */
 public class Binomialkoeffizient {
 
     /** Enthält den Wert $n$. */
-    private int n;
+    private final int n;
     /** Enthält die berechneten Werte. */
-    private int[] binom;
+    private final int[] binom;
     
     /**
      * Erzeugt eine Instanz, die alle entsprechenden Werte
@@ -57,7 +57,7 @@ public class Binomialkoeffizient {
      * @return {@code double[] (n über 0, ..., n über n})}.
      */
     public int[] getBinom() {
-        return (int[]) binom.clone();
+        return binom.clone();
     }
     
     /**

@@ -37,25 +37,6 @@ public class FieldBlockDecomposition {
     /** 
      * Die Anzahl der Kollokationsbedingungen je Block. */
     private final int l;
-
-//    /**
-//     * Erzeugt eine Instanz des Zerlegers der Matrix $A$.
-//     * @param a die Matrix $A$ für die $Ax = b$ gelöst werden soll.
-//     * @param b der Vektor $b$ für den $Ax = b$ gelöst werden soll.
-//     * @param k die Anzahl der Kollokationsbedingungen mit der die Matrix
-//     * erstellt wurde.
-//     * @param l die Anzahl der Teilintervalle. 
-//     */
-//    public FieldBlockDecomposition (FieldMatrix<Dfp> a, final int k,
-//            final int l) {
-//        if (!(a.isSquare()))
-//            throw new NonSquareMatrixException(a.getColumnDimension(),
-//                    a.getRowDimension());
-//        this.k = k;
-//        this.l = l;
-//        koerper = (DfpField) a.getField();
-//        this.a = transformA(a);
-//    }
     
     /**
      * Erzeugt eine Instanz des Zerlegers der Matrix $A$.
@@ -82,48 +63,10 @@ public class FieldBlockDecomposition {
         this.a = a;
     }
     
-//    /**
-//     * Wandelt die Matrix in ein zweidimensonales Array {@code Dfp[][]} um, 
-//     * mit dem nur sehr wenig Speicher belegt wird. Dabei werden alle in der
-//     * Matrix vorhandenen Blöcke in einem Array der Breite $k+2$
-//     * "untereinander" abgelegt.
-//     * @param m die Matrix, die umzuwandeln ist.
-//     */
-//    private Dfp[][] transformA(FieldMatrix<Dfp> m) {
-//        Dfp[][] tempA = new Dfp[l*(k+2)][k+2];
-//        /** Zeile im Array, welche die erste Randbedingung enthält. */
-//        tempA[0] = m.getSubMatrix(0, 0,
-//                0, k+1).getRowVector(0).toArray();
-//        for (int i = 0; i < l; i++) {
-//            /**
-//             * Zeilen, in den die Kollokationsbedingung des $i$-ten Blocks
-//             * enthalten sind.
-//             */
-//            for (int j = 1; j <= k; j++) {
-//                tempA [i*(k+2)+j] = m.getSubMatrix(i*(k+2)+j, i*(k+2)+j,
-//                        i*(k+2), (i+1)*(k+2)-1).getRowVector(0).toArray();
-//            }
-//            /**
-//             * In jedem außer dem letzten Block werden die zwei
-//             * Stetigkeitsbedingungen ergänzt.
-//             */
-//            if (i < l - 1)
-//                for (int j = 1; j <= 2; j++) {
-//                    tempA [i*(k+2)+k+j] = m.getSubMatrix((i+1)*(k+2)-2+j,
-//                            (i+1)*(k+2)-2+j, i*(k+2)+k, i*(k+2)+2 * k+1)
-//                            .getRowVector(0).toArray();
-//                }
-//        }
-//        /** Zeile, welche die zweite Randbedingung enthält. */
-//        tempA[l*(k+2)-1] = m.getSubMatrix(l*(k+2)-1, l*(k+2)-1,
-//                (l-1)*(k+2), (l-1)*(k+2)+k+1).getRowVector(0).toArray();
-//        return tempA;
-//    }
-    
     /**
      * Löst für einen übergebenen Vektor $b$ das Gleichungssystem $Ax = b$.
      * @param b die rechte Seite des Gleichungssystems.
-     * @return dDie Lösung $x$ des Gleichungssystems $Ax = b$.
+     * @return Die Lösung $x$ des Gleichungssystems $Ax = b$.
      */
     public Dfp[] solve(Dfp[] b) {
         /*

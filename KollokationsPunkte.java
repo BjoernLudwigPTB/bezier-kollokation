@@ -7,13 +7,9 @@ import org.apache.commons.math3.dfp.DfpField;
  */
 public class KollokationsPunkte {
     
-    /**
-     * Der Körper in dem die Punkte erzeugt werden soll.
-     */
+    /** Der Körper in dem die Punkte erzeugt werden soll. */
     private final DfpField koerper;
-   /**
-    * Das Feld {@code double[] rho} enthält die $k$ Punkte.
-    */
+   /** Das Feld {@code Dfp[] rho} enthält die $k$ Punkte. */
     final Dfp[] rho;
 
     /**
@@ -26,16 +22,15 @@ public class KollokationsPunkte {
     }
 
   /**
-   * Erstellt ein {@code double[]}-Array, dass die
-   * $\rho_j, j = 1, ..., k \subset (-1, 1)$ enthält, aus denen dann
-   * die $\tau_j$ berechnet werden können.
+   * Erstellt ein {@code Dfp[]}-Array, das die
+   * $\rho_j, j = 1, ..., k \subset (-1, 1)$ enthält.
    * @param k Anzahl der Kollokationspunkte.
-   * @return das {@code double[]}-Array mit den $\rho_j$.
+   * @return das {@code Dfp[]}-Array mit den $\rho_j$.
    */
     private Dfp[] setzePunkte(int k) {
         Dfp[]  tempRho = new Dfp[k];
         Dfp temp = koerper.getOne().add(k).divide(koerper.getTwo());
-        for (int j = 1; j <= tempRho.length; j++) {
+        for (int j = 1; j <= k; j++) {
             tempRho[j-1] = temp.reciprocal().multiply(j).subtract(1);
         };
         return tempRho;
@@ -50,9 +45,9 @@ public class KollokationsPunkte {
     }
 
     /**
-     * Gibt eine Kopie des Feldes {@code double[] rho} der Kollokationspunkte
+     * Gibt eine Kopie des Feldes {@code Dfp[] rho} der Kollokationspunkte
      * im Intervall $(-1, 1)$ zurück.
-     * @return eine Kopie von {@code double[] rho}
+     * @return eine Kopie von {@code Dfp[] rho}
      */
     public Dfp[] getRho() {
         return rho.clone();
@@ -64,26 +59,5 @@ public class KollokationsPunkte {
      */
     public int getK() {
         return rho.length;
-    }
-
-    /**
-     * Testprozedur für die Korrektheit der Implementierung
-     * @param args
-     */
-    public static void main (String[] args) {        
-        /**
-         * Testen zweier Beispiele in verschiedenen Modi durch Ausgabe
-         * interessierender Daten auf der Konsole.
-         */
-        final int n = 12;
-        KollokationsPunkte rho;
-        for (int k = 1; k <= n; k++) {
-            System.out.println("k = " + k + "\n");
-            rho = new KollokationsPunkte(k, new DfpField(30));
-            for (int j = 1; j <= k; j++) {
-                System.out.println(rho.getRho(j-1));
-            }
-            System.out.println();
-        }
     }
 }

@@ -25,51 +25,43 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
 public class FieldEigenDecomposition {
     /** Der Körper über dem die Zerlegung berechnet werden soll. */
     private final DfpField koerper;
-    /**
-     * Maximum number of iterations accepted in the implicit QL transformation
-     */
+    /** Maximum number of iterations accepted. */
     private final static byte maxIter = 30;
-    /** Secondary diagonal of the tridiagonal matrix. */
-    private final Dfp[] neben;
     /** The eigenvalues. */
     private final Dfp[] eigenvalues;
 
     /**
      * Calculates the eigen decomposition of the symmetric tridiagonal
      * matrix.
-     *
      * @param neben of the tridiagonal form.
      * @throws MaxCountExceededException if the algorithm fails to converge.
      * @since 3.1
      */ 
     public FieldEigenDecomposition(final Dfp[] neben) {
-            this.neben = neben.clone();
             this.koerper = neben[0].getField();
-            eigenvalues = findEigenValues();
+            eigenvalues = findEigenValues(neben);
         }
     
     /**
      * Find eigenvalues (Dubrulle et al., 1971)
+     * @param neben Secondary diagonal of the tridiagonal matrix.
      */
-    private Dfp[] findEigenValues() {
+    private Dfp[] findEigenValues(Dfp[] neben) {
         final int n = neben.length;
         Dfp[] tempEigenvalues = new Dfp[n];
-        final Dfp[] e = new Dfp[n];
-        for (int i = 0; i < n - 1; i++) {
+        final Dfp[] e = neben;
+        for (int i = 0; i < n; i++) {
             tempEigenvalues[i] = koerper.getZero();
-            e[i] = neben[i];
         }
-        tempEigenvalues[n - 1] = koerper.getZero();
-       e[n - 1] = koerper.getZero();
 
-        // Determine the largest secondary value in absolute term.
+        /* Determine the largest secondary value in absolute term. */
         Dfp maxAbsoluteValue = koerper.getZero();
         for (int i = 0; i < n; i++) {
             if (e[i].abs().greaterThan(maxAbsoluteValue)) {
                 maxAbsoluteValue = e[i].abs();
             }
         }
-        // Make null any secondary value too small to be significant
+        /* Make null any secondary value too small to be significant. */
         if (maxAbsoluteValue.unequal(koerper.getZero())) {
             Dfp temp = maxAbsoluteValue.multiply(
                     koerper.getZero().nextAfter(koerper.getOne()));
@@ -152,13 +144,12 @@ public class FieldEigenDecomposition {
                 }
             } while (m != j);
         }
-
-        //Sort the eigen values in increase order
+        /* Sort the eigen values in increase order. */
         for (int i = 0; i < n; i++) {
             int k = i;
             Dfp p = tempEigenvalues[i];
             for (int j = i + 1; j < n; j++) {
-                if (tempEigenvalues[j].greaterThan(p)) {
+                if (tempEigenvalues[j].lessThan(p)) {
                     k = j;
                     p = tempEigenvalues[j];
                 }
@@ -173,7 +164,6 @@ public class FieldEigenDecomposition {
 
     /**
      * Gets a copy of the eigenvalues of the original matrix.
-     *
      * @return a copy of the eigenvalues of the original matrix.
      */
     public Dfp[] getEigenvalues() {

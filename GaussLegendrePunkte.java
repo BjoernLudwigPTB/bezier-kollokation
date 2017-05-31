@@ -1,4 +1,3 @@
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.dfp.Dfp;
 import org.apache.commons.math3.dfp.DfpField;
 import org.apache.commons.math3.util.FastMath;
@@ -16,7 +15,8 @@ public class GaussLegendrePunkte {
 
     /**
      * Erzeugt eine Instanz für ein $k > 0$.
-     * @param k
+     * @param k die gewünschte Anzahl der Gauss-Legendre-Punkte.
+     * @param koerper in dem die Punkte definiert sein sollen.
      */
     public GaussLegendrePunkte(int k, DfpField koerper) {
         this.koerper = koerper;
@@ -25,20 +25,17 @@ public class GaussLegendrePunkte {
 
   /**
    * Erstellt ein {@code double[]}-Array, das die
-   * $\rho_j, j = 1, ..., k \subset (-1, 1)$ enthält, aus denen dann
-   * die $\tau_j$ berechnet werden können.
+   * $\rho_j, j = 1, ..., k \subset (-1, 1)$ enthält.
    * @param k Anzahl der Kollokationspunkte.
    * @return das {@code double[]}-Array mit den $\rho_j$.
    */
     private Dfp[] setzePunkte(int k) {
-        Dfp[]  tempRho, neben = new Dfp[k];
+        Dfp[] neben = new Dfp[k];
         for (int j = 1; j <= k; j++) {
             neben[j-1] = (koerper.getOne().negate().add(4 * 
                     FastMath.pow(j, 2))).sqrt().reciprocal().multiply(j);
-        };
-        tempRho = new FieldEigenDecomposition(neben).getEigenvalues();
-        ArrayUtils.reverse(tempRho);
-        return tempRho;
+        }
+        return new FieldEigenDecomposition(neben).getEigenvalues();
     }
 
     /**
@@ -64,23 +61,5 @@ public class GaussLegendrePunkte {
      */
     public int getK() {
         return rho.length;
-    }
-
-    /**
-     * Testprozedur für die Korrektheit der Implementierung.
-     * @param args
-     */
-    public static void main (String[] args) {
-        final DfpField koerper = new DfpField(50);
-        final int n = 12;
-        GaussLegendrePunkte rho1;
-        for (int k = 1; k <= n; k++) {
-            System.out.println("k = " + k + "\n");
-            rho1 = new GaussLegendrePunkte(k, koerper);
-            for (int j = 1; j <= k; j++) {
-                System.out.println(rho1.getRho(j-1));
-            }
-            System.out.println();
-        }
     }
 }
