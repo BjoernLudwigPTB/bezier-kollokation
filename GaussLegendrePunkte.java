@@ -1,6 +1,5 @@
 import org.apache.commons.math3.dfp.Dfp;
 import org.apache.commons.math3.dfp.DfpField;
-import org.apache.commons.math3.util.FastMath;
 
 /**
  * Erzeugt ein Feld, das für einen übergebenen Paramter $k$ die
@@ -33,7 +32,7 @@ public class GaussLegendrePunkte {
         Dfp[] neben = new Dfp[k];
         for (int j = 1; j <= k; j++) {
             neben[j-1] = (koerper.getOne().negate().add(4 * 
-                    FastMath.pow(j, 2))).sqrt().reciprocal().multiply(j);
+                    Math.pow(j, 2))).sqrt().reciprocal().multiply(j);
         }
         return new FieldEigenDecomposition(neben).getEigenvalues();
     }

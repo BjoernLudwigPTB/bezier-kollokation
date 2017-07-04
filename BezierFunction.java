@@ -8,7 +8,7 @@ import org.apache.commons.math3.util.MathUtils;
 
 /**
  * Repräsentiert ein Polynom in Bézierdarstellung angelehnt an 
- * {@code org.apache.commons.math3.analysis.polynomials.PolynomialFunction}.
+ * $\verb!org.apache.commons.math3.analysis.polynomials.PolynomialFunction!$.
  */
 public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
 
@@ -16,9 +16,8 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
         DfpField koerper;
         /**
          * The bezierpoints of the polynomial, ordered by degree -- i.e.,
-         * {@code b[0]} is $b_0$ and {@code b[n]} is the coefficient of
-         * ${}_s^t B_n^n$ where $n$ is the degree of all the Bernstein
-         * polynomials the function is composed of.
+         * $\verb!b[0]!$ is $b_0$ and $\verb!b[n]!$ is the coefficient of ${}_s^t B_n^n$ where $n$ is the
+         * degree of all Bernstein polynomials the function is composed of.
          */
         private final Dfp[] b;
         /**
@@ -29,16 +28,14 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
         
         /**
          * Construct a polynomial with the given bezierpoints. The first
-         * element of {@code Dfp[] b} is the bezierpoint for ${}_s^t B_0^{k+1}$. 
+         * element of $\verb!Dfp[] b!$ is the bezierpoint for ${}_s^t B_0^{k+1}$. 
          * Higher degree bezierpoints follow in sequence. The degree of the 
          * resulting polynomial is the index of the last element of the array.
-         * <p>
          * The constructor makes a copy of the input array and assigns the
-         * copy to {@code Dfp[] b}.
-         * </p>
+         * copy to $\verb!Dfp[] b!$.
          * @param b bezierpoints.
-         * @throws NullArgumentException if {@code b} is {@code null}.
-         * @throws NoDataException if {@code b} is empty.
+         * @throws NullArgumentException if $\verb!b!$ is $\verb!null!$.
+         * @throws NoDataException if $\verb!b!$ is empty.
          */
         public BezierFunction(DfpField koerper, Dfp[] b, Dfp s, Dfp t)
                 throws NullArgumentException, NoDataException {
@@ -84,11 +81,11 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
             case 0:
                 return value(x);
             case 1:
-                return (tMinusS).reciprocal()
+                return tMinusS.reciprocal()
                 .multiply(b.length - 1).multiply(deCasteljau(x, mu, b.length
                         -2, 1).subtract(deCasteljau(x, mu, b.length - 2, 0)));
             case 2:
-                return (tMinusSSqr).reciprocal()
+                return tMinusSSqr.reciprocal()
                 .multiply(b.length - 1).multiply(b.length - 2)
                 .multiply(deCasteljau(x, mu, b.length - 3, 0)
                         .subtract(koerper.getTwo().multiply(
@@ -119,7 +116,7 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
          * @param i unterer Index $b_i^r$.
          * @param b Feld der Bézier-Punkte.
          * @return Für $i = 0, r = n}$ der Funktionswert des Polynoms in
-         * Bézier-Darstellung mit Bézier-Punkten {@code doube[] b} an der
+         * Bézier-Darstellung mit Bézier-Punkten $\verb!doube[] b!$ an der
          * Stelle $x$.
          */
         public Dfp deCasteljau (Dfp x, Dfp mu, int r, int i) {
@@ -141,23 +138,12 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
         }
 
         /**
-         * Returns a copy of the bezierpoints.
-         * <p>
-         * Changes made to the returned copy will not affect the bezierpoints
-         * of the polynomial.
-         * </p>
+         * Returns a copy of the bezierpoints. Changes made to the returned
+         * copy will not affect the bezierpoints of the polynomial.
          * @return a fresh copy of the bezierpoints array.
          */
         public Dfp[] getBezierpunkte() {
             return (Dfp[]) b.clone();
-        }
-
-        /**
-         * Gibt den Körper zurück, auf dem die Funktion definiert ist.
-         * @return a fresh copy of the bezierpoints array.
-         */
-        public DfpField getKoerper() {
-            return koerper;
         }
         
         /**

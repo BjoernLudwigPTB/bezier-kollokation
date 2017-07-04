@@ -1,7 +1,4 @@
-/**
- * Repräsentiert für einen Paramter $n$ alle Werte von
- * $n$ über $k, k = 0, ..., n$.
- */
+/** Repräsentiert für einen Paramter $n$ alle Werte von $n$ über $k, k = 0, ..., n$.*/
 public class Binomialkoeffizient {
 
     /** Enthält den Wert $n$. */
@@ -54,7 +51,7 @@ public class Binomialkoeffizient {
     /**
      * Gibt alle Werte $n$ über $k, k = 0, ..., n$ zurück.
      * @param k für das $n$ über $k$ zurückgegeben werden soll.
-     * @return {@code double[] (n über 0, ..., n über n})}.
+     * @return $\verb!double[] (! \binom{n}{0}, \hdots, \binom{n}{n}\verb!)!$.
      */
     public int[] getBinom() {
         return binom.clone();

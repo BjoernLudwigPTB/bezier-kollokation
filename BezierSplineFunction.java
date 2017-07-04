@@ -6,31 +6,24 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
 /**
  * Represents a Bézier spline function, most of the implementation being taken
  * from
- * <p>
- * {@code apache.commons.math3.analysis.polynomials.PolynomialSplineFunction}.
- * </p> <p>
- * A <strong>Bézier spline function</strong> consists of a set of
- * <i>BezierFunction</i>s and an ascending array of domain
- * <i>gridknots</i>, determining the intervals over which the spline
+ * $\verb!apache.commons.math3.analysis.polynomials.PolynomialSplineFunction!$.
+ * A $\textbf{Bézier spline function}$ consists of a set of
+ * $\textit{BezierFunction}$s and an ascending array of domain
+ * $\textit{gridknots}$, determining the intervals over which the spline
  * function is defined by the constituent polynomials.
- * <p>
  * The domain of the polynomial spline function is
  * $[s := \text{smallest knot}, \text{largest knot} =: t]$. Attempts to
  * evaluate the spline at values smaller than $s$ will give the function value
  * of the first polynomial and analoguely for values bigger than $t$ the
  * function value of the last polynomial.
- * </p>
- * <p>
  * The value of the polynomial spline function for an argument $x$ is computed
  * as follows:
- * <ol>
- * <li>The knot array is searched to find the segment to which $x$ belongs.
+ * 1. The knot array is searched to find the segment to which $x$ belongs.
  * If $x$ is less than the smallest knot point the value returned is
- * $\operatorname{functions}[0](x)$.</li>
- * <li> Let $j$ be the index of the largest knot point that is less
+ * $\operatorname{functions}[0](x)$.
+ * 2. Let $j$ be the index of the largest knot point that is less
  * than or equal to $x$. The value returned is
- * $\operatorname{functions}[j](x)$.</li>
- * </ol>
+ * $\operatorname{functions}[j](x)$.
  */
 public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
     /** Spline segment interval delimiters of size $l + 1$ for $l$ segments.*/
@@ -50,15 +43,15 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
     /**
      * Construct a polynomial spline function with the given segment
      * delimiters and polynomials. The constructor copies both arrays and
-     * assigns the copies to the {@code gitterKnoten} and {@code polynomials}
-     * properties, respectively.
+     * assigns the copies to the $\verb!gitterKnoten!$ and
+     * $\verb!polynomials!$ properties, respectively.
      * @param knoten Spline segment interval delimiters.
      * @param functions Polynomial functions that make up the spline.
      * @throws NullArgumentException if either of the input arrays is
-     * {@code null}.
+     * $\verb!null!$.
      * @throws NumberIsTooSmallException if knoten has length less than 2.
      * @throws DimensionMismatchException if 
-     * {@code functions.length != knoten.length - 1}.
+     * $\verb!functions.length \!= knoten.length - 1!$.
      *
      */
     public BezierSplineFunction (Dfp knoten[], BezierFunction functions[])
@@ -86,7 +79,7 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
 
     /**
      * Compute the value for the function.
-     * See {@link BezierSplineFunction} for details on the algorithm for
+     * See above for details on the algorithm for
      * computing the value of the function.
      * @param x Point for which the function value should be computed.
      * @return the value.
@@ -98,7 +91,7 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
 
     /**
      * Compute the derivative for the function.
-     * See {@link BezierSplineFunction} for details on the algorithm for
+     * See above for details on the algorithm for
      * computing the derivative of the function.
      * @param x Point for which the function derivative should be computed.
      * @return the value.
@@ -119,7 +112,7 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
     /**
      * Get a copy of the Bézierfunctions array.
      * It returns a fresh copy of the array. Changes made to the copy will
-     * not affect the {@code functions} property.
+     * not affect the $\verb!functions!$ property.
      * @return the functions.
      */
     public BezierFunction[] getPolynomials() {
@@ -142,7 +135,7 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
      * @return $i \in \{0, \hdots, l - 1\}$.
      */
     private int getInterval (Dfp x) {
-        if (x.lessThan(knoten[1])) {
+        if (x.lessThan(knoten[1]) || knoten.length == 2) {
             return 0;
         } else {
             int i;

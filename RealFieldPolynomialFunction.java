@@ -13,8 +13,8 @@ import org.apache.commons.math3.util.MathUtils;
 
 /**
  * Repräsentiert eine Polynomfunktion beliebigen Grades basierend
- * auf dem Datentyp {@code Dfp} angelehnt an 
- * {@code org.apache.commons.math3.analysis.polynomials.PolynomialFunction}.
+ * auf dem Datentyp $\verb!Dfp!$ angelehnt an 
+ * $\verb!org.apache.commons.math3.analysis.polynomials.PolynomialFunction!$.
  */ 
 public class RealFieldPolynomialFunction
         implements RealFieldUnivariateFunction<Dfp>, UnivariateFunction {
@@ -25,9 +25,7 @@ public class RealFieldPolynomialFunction
      */
     private final Dfp addIdent;
     /**
-     * Die Koeffizienten des Polynoms
-     * <p>
-     * $p(x) = p_n x^n + \hdots + p_1 x + p_0,$
+     * Die Koeffizienten des Polynoms $p(x) = p_n x^n + \hdots + p_1 x + p_0,$
      * $\mathrm{koeffizienten}[i] = p_i, \quad i = 0, \hdots ,n.$
      * </p>
      */
@@ -40,15 +38,12 @@ public class RealFieldPolynomialFunction
          * Der Grad des sich ergebenden Polynoms ist der Index des letzten von
          * Null verschiedenen Elements des Array, falls nicht alle Elemente
          * Null sind.
-         * <p>
          * Der Konstruktor kopiert das übergebene Array und weist der Variable
-         * {@code koeffizienten} die Kopie wie folgt zu:</p>
-         * <p>
-         * $\mathrm{koeffizienten}[i] = p_i, i = 0, \hdots,n$</p>
+         * $\verb!koeffizienten!$ die Kopie wie folgt zu:
+         * $\mathrm{koeffizienten}[i] = p_i, i = 0, \hdots,n$.
          * @param koeffizienten Koeffizienten des Polynoms.
-         * @throws NullArgumentException falls {@code koeffizienten}
-         * {@code null} ist.
-         * @throws NoDataException falls {@code koeffizienten} leer ist.
+         * @throws NullArgumentException falls $\verb!koeffizienten null!$ ist.
+         * @throws NoDataException falls $\verb!koeffizienten!$ leer ist.
          */
         public RealFieldPolynomialFunction(Dfp[] koeffizienten)
                 throws NullArgumentException, NoDataException {
@@ -80,7 +75,7 @@ public class RealFieldPolynomialFunction
         }
 
         /**
-         * Berechnet den Funktionswert des Polynoms als {@code double}.
+         * Berechnet den Funktionswert des Polynoms.
          * @param x Stelle, an der die Funktion ausgewertet werden soll.
          * @return Funktionswert an der Stelle $x$.
          */
@@ -89,10 +84,10 @@ public class RealFieldPolynomialFunction
         }  
 
         /**
-         * Erzeugt aus einer {@code RealFieldPolynomialFunction} eine
-         * {@code PolynomialFunction} mit entsprechend geringerer Genauigkeit.
-         * @param f ist die umzuwandelnde {@code RealFieldPolynomialFunction}.
-         * @return Ein Objekt vom Typ {@code PolynomialFunction}.
+         * Erzeugt aus einer $\verb!RealFieldPolynomialFunction!$ eine
+         * $\verb!PolynomialFunction!$ mit entsprechend geringerer Genauigkeit.
+         * @param f ist die umzuwandelnde $\verb!RealFieldPolynomialFunction!$.
+         * @return Ein Objekt vom Typ $\verb!PolynomialFunction!$.
          */
         public PolynomialFunction getPolynomialFunction () {
             int anzahl = koeffizienten.length;
@@ -103,38 +98,27 @@ public class RealFieldPolynomialFunction
             }
             return new PolynomialFunction(doubleKoeffizienten);
         }
-
+        
         /**
-         * Berechnet eine Näherung der unteren Schranke des Funktionswerts
-         * im Intervall $(0, 1)$.
-         * @return Eine Näherung der unteren Schranke von {@code f}.
+         * Ermittelt, ob die Funktion konstant ist oder nicht.
+         * return $\verb!true!$, falls alle Koeffizienten $0$ sind.
          */
-        public Dfp min () {
-            UnivariateFunction f = new Beispiel4(addIdent.getField());
-            UnivariateObjectiveFunction minF = 
-                    new UnivariateObjectiveFunction(f);
-            double schranke = 1.0e-15;
-            MaxEval maxAuswertungen = new MaxEval(40);
-            BrentOptimizer einfachOptimierer = new BrentOptimizer(schranke, 
-                    schranke);
-            MultiStartUnivariateOptimizer optimierer = new 
-                    MultiStartUnivariateOptimizer(einfachOptimierer, 1, 
-                            new Well19937a());
-            System.out.println(einfachOptimierer.getMax());
-            return addIdent.newInstance(optimierer.optimize(maxAuswertungen, 
-                    minF, GoalType.MINIMIZE, new SearchInterval(-1, 1))
-                    .getValue() - schranke);
-        }       
+        public boolean istKonstantNull() {
+            for (Dfp dfp : koeffizienten) {
+                if (!dfp.isZero()) return false;
+            }
+            return true;
+        } 
 
         /**
          * Returns the coefficients of the derivative of the polynomial with
          * the given coefficients.
          * @param coefficients Coefficients of the polynomial to differentiate.
-         * @return the coefficients of the derivative or {@code null} if
+         * @return the coefficients of the derivative or $\verb!null!$ if
          * coefficients has length $1$.
-         * @throws NoDataException if {@code coefficients} is empty.
-         * @throws NullArgumentException if {@code coefficients} is
-         * {@code null}.
+         * @throws NoDataException if $\verb!coefficients!$ is empty.
+         * @throws NullArgumentException if $\verb!coefficients!$ is
+         * $\verb!null!$.
          */
         protected static Dfp[] differentiate(Dfp[] coefficients)
             throws NullArgumentException, NoDataException {
@@ -155,7 +139,7 @@ public class RealFieldPolynomialFunction
         }
 
         /**
-         * Returns the derivative as a {@link RealFieldPolynomialFunction}.
+         * Returns the derivative as a $\verb!RealFieldPolynomialFunction!$.
          * @return the derivative polynomial.
          */
         public RealFieldPolynomialFunction polynomialDerivative() {
@@ -164,10 +148,50 @@ public class RealFieldPolynomialFunction
         }
 
         /**
-         * Returns the derivative as a {@link UnivariateFunction}.
+         * Returns the derivative as a $\verb!UnivariateFunction!$.
          * @return the derivative function.
          */
         public UnivariateFunction derivative() {
             return polynomialDerivative();
         }
+
+        /**
+         * Berechnet eine Näherung der unteren Schranke des Funktionswerts
+         * von $f$ im Intervall $(0, 1)$.
+         * @return Eine Näherung der unteren Schranke von $f$.
+         */
+        public Dfp min (Dfp s, Dfp t) {
+            UnivariateObjectiveFunction minF = 
+                    new UnivariateObjectiveFunction(this);
+            double schranke = 1e-15;
+            MaxEval maxAuswertungen = new MaxEval(70);
+            BrentOptimizer einfachOptimierer = new BrentOptimizer(schranke, 
+                    schranke);
+            MultiStartUnivariateOptimizer optimierer = new 
+                    MultiStartUnivariateOptimizer(einfachOptimierer, 3, 
+                            new Well19937a());
+            return s.newInstance(optimierer.optimize(maxAuswertungen, 
+                    minF, GoalType.MINIMIZE, new SearchInterval(s.toDouble(),
+                            t.toDouble())).getValue());
+        }      
+
+        /**
+         * Berechnet eine Näherung der unteren Schranke des Funktionswerts
+         * von $f$ im Intervall $(0, 1)$.
+         * @return Eine Näherung der unteren Schranke von $f$.
+         */
+        public static Dfp min (RealFieldUnivariateFunction<Dfp> f, Dfp s, Dfp t) {
+            UnivariateObjectiveFunction minF = 
+                    new UnivariateObjectiveFunction((UnivariateFunction) f);
+            double schranke = 1e-15;
+            MaxEval maxAuswertungen = new MaxEval(70);
+            BrentOptimizer einfachOptimierer = new BrentOptimizer(schranke, 
+                    schranke);
+            MultiStartUnivariateOptimizer optimierer = new 
+                    MultiStartUnivariateOptimizer(einfachOptimierer, 3, 
+                            new Well19937a());
+            return s.newInstance(optimierer.optimize(maxAuswertungen, 
+                    minF, GoalType.MINIMIZE, new SearchInterval(s.toDouble(),
+                            t.toDouble())).getValue());
+        }      
 }

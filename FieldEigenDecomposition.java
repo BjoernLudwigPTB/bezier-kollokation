@@ -5,22 +5,14 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
 
 /**
  * Calculates the eigenvalues of a real matrix taking the algortihm from
- * <code>EigenDecomposition</code> and adapting it to {@code Dfp} matrices.
- * <p>This class is similar in spirit to the
- * <code>EigenvalueDecomposition</code> class from the
- * <a href="http://math.nist.gov/javanumerics/jama/">JAMA</a>
- * library, with the limitation to calculating Eigenvalues auf symmetric
- * tridiagonal matrices with only zeros on the main diagonal.</p>
- * <p>
- * This implementation is based on the paper by A. Drubrulle, R.S. Martin and
- * J.H. Wilkinson "The Implicit QL Algorithm" in Wilksinson and Reinsch (1971)
- * Handbook for automatic computation, vol. 2, Linear algebra,
+ * $\verb!EigenDecomposition!$ and adapting it to $\verb!Dfp!$ matrices. This class is similar
+ * in spirit to the $\verb!EigenvalueDecomposition!$ class from the JAMA library, with the
+ * limitation to calculating Eigenvalues of symmetric tridiagonal matrices
+ * with only zeros on the main diagonal to save operations. This
+ * implementation is based on the paper by $\textsc{A. Drubrulle, R.S. Martin}$ and
+ * $\textsc{J.H. Wilkinson}$ "The Implicit QL Algorithm" in $\textsc{Wilksinson}$ and $\textsc{Reinsch}$
+ * (1971) Handbook for automatic computation, vol. 2, Linear algebra,
  * Springer-Verlag, New-York.
- * </p>
- * @see <a href="http://mathworld.wolfram.com/EigenDecomposition.html">
- * MathWorld</a>
- * @see <a href="http://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix">
- * Wikipedia</a>
  */
 public class FieldEigenDecomposition {
     /** Der Körper über dem die Zerlegung berechnet werden soll. */
@@ -43,7 +35,7 @@ public class FieldEigenDecomposition {
         }
     
     /**
-     * Find eigenvalues (Dubrulle et al., 1971)
+     * Find eigenvalues ($\textsc{Dubrulle}$ et al., 1971)
      * @param neben Secondary diagonal of the tridiagonal matrix.
      */
     private Dfp[] findEigenValues(Dfp[] neben) {
@@ -52,25 +44,6 @@ public class FieldEigenDecomposition {
         final Dfp[] e = neben;
         for (int i = 0; i < n; i++) {
             tempEigenvalues[i] = koerper.getZero();
-        }
-
-        /* Determine the largest secondary value in absolute term. */
-        Dfp maxAbsoluteValue = koerper.getZero();
-        for (int i = 0; i < n; i++) {
-            if (e[i].abs().greaterThan(maxAbsoluteValue)) {
-                maxAbsoluteValue = e[i].abs();
-            }
-        }
-        /* Make null any secondary value too small to be significant. */
-        if (maxAbsoluteValue.unequal(koerper.getZero())) {
-            Dfp temp = maxAbsoluteValue.multiply(
-                    koerper.getZero().nextAfter(koerper.getOne()));
-            for (int i=0; i < n-1; i++) {
-                if ((e[i].abs().lessThan(temp)) || 
-                        e[i].abs().equals(temp)) {
-                    e[i] = koerper.getZero();
-                }
-            }
         }
 
         for (int j = 0; j < n; j++) {

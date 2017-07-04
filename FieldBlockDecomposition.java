@@ -3,7 +3,6 @@ import org.apache.commons.math3.dfp.DfpField;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import org.apache.commons.math3.linear.*;
 
-
 /**
  * Implementierung des Algorithmus $\verb!bandet1!$ von Martin und Wilkinson (
  * Numer. Math. 9 (1967) pp. 279--301) zur direkten Lösung eines linearen
@@ -14,17 +13,15 @@ import org.apache.commons.math3.linear.*;
  * Matrizen angepasst hat. Lediglich die skalierte Spalten-Pivotsuche nehmen
  * wir bezogen auf die Zeilensummennorm vor und nicht, wie im Original, in
  * Bezug auf die Maximumnorm, weil diese als eine von zwei Pivotstrategien,
- * welche die Restmatrix einbeziehen, in T. Linß (Numerische Mathematik I
- * (2015) pp. 77-78) genannt wird. 
- * <p>
- * Die Blockstruktur der Kollokationsmatrix ist dabei auf eine
- * Kollokationsmatrix zur Bestimmung eines $C^1$-Splines ausgelegt, der eine
- * Zwei-Punkt-Randwertaufgabe löst. Das heißt die Matrix $A$ beginnt mit einer
- * Zeile zur Randbedingungen am Anfang des betrachteten Intervalls, gefolgt
- * von $k$ Kollokationsbedingungen, auf die wiederum bis zum vorletzten der
- * $l-1$ Blöcke $2$ Stetigkeitsbedingungen folgen und an die sich im letzten
- * Block die Randbedingung am rechten Ende des betrachteten Intervalls
- * anschließt.</p> 
+ * welche die Restmatrix einbeziehen, in $\textsc{T. Linß}$ (Numerische Mathematik I
+ * (2015) pp. 77-78) genannt wird. Die Blockstruktur der Kollokationsmatrix
+ * ist dabei auf eine Kollokationsmatrix zur Bestimmung eines $C^1$-Splines
+ * ausgelegt, der eine Zwei-Punkt-Randwertaufgabe löst. Das heißt die Matrix 
+ * $A$ beginnt mit einer Zeile zur Randbedingungen am Anfang des betrachteten
+ * Intervalls, gefolgt von $k$ Kollokationsbedingungen, auf die wiederum bis
+ * zum vorletzten der $l-1$ Blöcke $2$ Stetigkeitsbedingungen folgen und an
+ * die sich im letzten Block die Randbedingung am rechten Ende des
+ * betrachteten Intervalls anschließt.
  */
 public class FieldBlockDecomposition {
 
@@ -44,7 +41,7 @@ public class FieldBlockDecomposition {
      * @param b der Vektor $b$ für den $Ax = b$ gelöst werden soll.
      * @param k die Anzahl der Kollokationsbedingungen mit der die Matrix
      * erstellt wurde.
-     * @param l die Anzahl der Teilintervalle. 
+     * @param l die Anzahl der Gitterintervalle. 
      */
     public FieldBlockDecomposition (Dfp[][] a, final int k,
             final int l) {
@@ -71,47 +68,42 @@ public class FieldBlockDecomposition {
     public Dfp[] solve(Dfp[] b) {
         /*
          * Folgende Variablenbezeichnungen verwenden wir im
-         * Vergleich zu de Boor (1978):
-         * <l>
-         * <li>W $=: a$;
-         * <li>B $=: b$;
-         * <li>NEQU $=: a.$length;
-         * <li>COLMAX $=:$ maxDominanz;
-         * <li>TEMP $=:$ maxDominanz;
-         * <li>AWILOD $=:$ tempDominanz;
-         * <li>ISTAR $=:$ indexMaxDominanz;
-         * <li>NCOLS $=: a[0].$length;
-         * <li>LASTCL $=:$ letzteSpalteBlock;
-         * <li>NROWAD $=:$ structure[i][0];
-         * <li>NEXTEQ $=:$ letzteGleichungBlock + j;
-         * <li>INTEGS $=:$ structure;
-         * <li>NBLOKS $=: 2 * l - 1 = \operatorname{structure.length} - 1$;
-         * <li>D $=:$ zeilenSumme;
-         * <li>X $=:$ tempX;
-         * <li>IFLAG nicht vorhanden, weil wir keine Determinante berechnen;
-         * <li>IPVTEQ $=:$ pivot;
-         * <li>LASTEQ $=:$ letzteGleichungBlock;
-         * <li>PVTL $=:$ pivot $+1$;
-         * <li>I $=: i$;
-         * <li>II $=:$ restBlock;
-         * <li>jMax $=:$ restBlock;
-         * <li>ICOUNT $=: j$;
-         * <li>RATIO $=:$ ratio;
-         * <li>SUM $=:$ tempSumme;
-         * </l>
+         * Vergleich zu $\textsc{de Boor}$ (1978):
+         * W $=: a$;
+         * B $=: b$;
+         * NEQU $=: a.$length;
+         * COLMAX $=:$ maxDominanz;
+         * TEMP $=:$ maxDominanz;
+         * AWILOD $=:$ tempDominanz;
+         * ISTAR $=:$ indexMaxDominanz;
+         * NCOLS $=: a[0].$length;
+         * LASTCL $=:$ letzteSpalteBlock;
+         * NROWAD $=:$ structure[i][0];
+         * NEXTEQ $=:$ letzteGleichungBlock + j;
+         * INTEGS $=:$ structure;
+         * NBLOKS $=: 2 * l - 1 = \operatorname{structure.length} - 1$;
+         * D $=:$ zeilenSumme;
+         * X $=:$ tempX;
+         * IFLAG nicht vorhanden, weil wir keine Determinante berechnen;
+         * IPVTEQ $=:$ pivot;
+         * LASTEQ $=:$ letzteGleichungBlock;
+         * PVTL $=:$ pivot $+1$;
+         * I $=: i$;
+         * II $=:$ restBlock;
+         * jMax $=:$ restBlock;
+         * ICOUNT $=: j$;
+         * RATIO $=:$ ratio;
+         * SUM $=:$ tempSumme;
          */
         if (b.length != a.length)
             throw new DimensionMismatchException(b.length, a.length);
         Dfp[] tempX = new Dfp[b.length];
         Dfp[] zeilenSumme = new Dfp[b.length];
         /*
-         * Nimmt die Struktur der Blockmatrix auf. Dabei ist
-         * <l>
-         * <li> {@code structure[i][0]} die Anzahl der Zeilen in Block $i$ und
-         * <li> {@code structure[i][1]} die Anzahl der möglichen Pivotschritte
-         * in Block $i$, bevor möglichweise eine Zeile aus dem nächsten Block
-         * in den Block hineinpivotiert wird.
-         * </l>
+         * Nimmt die Struktur der Blockmatrix auf. Dabei ist $\verb!structure[i][0]!$
+         * die Anzahl der Zeilen in Block $i$ und $\verb!structure[i][1]!$ die Anzahl
+         * der möglichen Pivotschritte in Block $i$, bevor möglichweise eine
+         * Zeile aus dem nächsten Block in den Block hineinpivotiert wird.
          */
         int[][] structure;
         if (l == 1) {
@@ -123,7 +115,7 @@ public class FieldBlockDecomposition {
         } else {
             /*
              * Sonst bilden die jeweils $k$ Kollokationsbedingungen jedes
-             * Teilintervalls einen Block, am oberen und unteren Rand der
+             * Gitterintervalls einen Block, am oberen und unteren Rand der
              * Matrix zusammen mit den Randbedingungen, und jeweils die
              * zwei Zeilen der Stetigkeitsbedingungen zwischen den
              * Kollokationsbedingungen.
@@ -139,7 +131,7 @@ public class FieldBlockDecomposition {
              * Besonderheit, dass die Blöcke der Länge $k + 2 = 3$ nicht mehr 
              * die Stetigkeitsbedingungen aufnehmen können, da sich diese
              * jeweils auf vier Bézierpunkte beziehen. Deshalb wird in diesem
-             * Fall die Matrix geringfügig umsortiert und {@code structure}
+             * Fall die Matrix geringfügig umsortiert und $\verb!structure!$
              * angepasst. Der vorletzte Block besteht dann lediglich aus der
              * $C^1$-Stetigkeitsbedingung und die $C^0$_Stetigkeitsbedingung
              * rutscht in den letzten Block. Dafür muss dann die zugehörige

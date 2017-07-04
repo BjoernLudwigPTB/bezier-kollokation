@@ -1,24 +1,19 @@
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.analysis.RealFieldUnivariateFunction;
-import org.apache.commons.math3.dfp.*;
+import org.apache.commons.math3.dfp.Dfp;
+import org.apache.commons.math3.dfp.DfpField;
+import org.apache.commons.math3.util.FastMath;
 
 /**
  * Implementierung der in der Ausarbeitung beschriebenen Kollokationsmethode
  * unter Verwendung der Bernsteinbasis.
  */
 public class BezierKollokation {
-    /**
-     * Die Genauigkeit, mit der gerechnet werden soll. Ab 18
-     * Kollokationspunkten bringt eine Genauigkeit bis 16 Stellen immer das
-     * gleiche Ergebnis.
-     */
-    private static final int genauigkeit = 45; 
-    /**
-     * Der verwendete Körper mit der Anzahl der Stellen, mit denen gerechnet
-     * wird.
-     */
+    /** Die Genauigkeit, mit der gerechnet werden soll. */
+    private static final int genauigkeit = 64; 
+    /** Der verwendete Körper in dem gerechnet wird. */
     private DfpField koerper = new DfpField(genauigkeit);
-    /** Die Anzahl der Kollokationspunkte je Teilintervall */
+    /** Die Anzahl der Kollokationspunkte je Gitterintervall. */
     private final int k;
     /** Die Kollokationspunkte $\tau_1, ..., \tau_{l \cdot k}$. */
     private final Dfp[] tau;
@@ -29,23 +24,61 @@ public class BezierKollokation {
      * $j = 1, ..., k, \quad r = 1, ..., k+1$. Es ist $mu[j-1][r-1]=\mu_j^r$.
      */
     private final Dfp[][] mu;
-    /** Die Näherungslösung $g$ von $y'' + p y' + q y = f$. */
-    private BezierSplineFunction g;    
-    
+    /** Die Näherungslösung $g$ von $-\varepsilon y'' - p y' + q y = f$. */
+    private BezierSplineFunction g;
+    /** Auszug aus den möglichen Farbnamen in Maple. */
+    enum Linienfarbe {
+        Brown, Crimson, Chocolate, Orange, SkyBlue, Magenta, Gold
+    }
+
     /**
-     * Erzeugt eine Instanz des Näherungsverfahrens und stößt die Berechnung
-     * der Näherungslösung an.
-     * @param k Anzahl der zu verwendenden Kollokationspunkte.
-     * @param l die Anzahl der Teilintervalle.
+     * Erzeugt eine Instanz des Näherungsverfahrens und berechnet die
+     * Näherungslösung, wenn schon ein Gitter erzeugt ist.
+     * @param k Anzahl der Kollokationspunkte je Gitterintervall.
+     * @param xi das Gitter auf dem die Näherungslösung berechnet werden soll.
+     * @param epsilon singulärer Störungsparameter.
+     * @param eta1 linker Randwert.
+     * @param eta2 rechter Randwert.
+     * @param p Koeffizientenfunktion in $-\varepsilon y'' - p y' + q y = f$.
+     * @param q Koeffizientenfunktion in $-\varepsilon y'' - p y' + q y = f$.
+     * @param f in $-\varepsilon y'' - p y' + q y = f$.
+     */
+    public BezierKollokation(int k, Gitter<Dfp> xi, Dfp epsilon, 
+            Dfp eta1, Dfp eta2, RealFieldPolynomialFunction p,
+            RealFieldUnivariateFunction<Dfp> q,
+            RealFieldUnivariateFunction<Dfp> f) {
+        this.k = k;
+        this.xi = xi.getXi();
+        int l = this.xi.length - 1;
+        tau = initialisiereTau(l);
+        mu = initialisiereMus(l);
+        Dfp[][] a = initialisiereA(l, epsilon, p, q);
+        Dfp[] v = initialisiereV(l, eta1, eta2, f);
+        Dfp[] loesung = new FieldBlockDecomposition(a, k, l)
+                .solve(v);
+        BezierFunction[] functions = new BezierFunction[l];
+        for (int i = 0; i < l; i++) {
+            functions[i] = new BezierFunction(koerper, ArrayUtils
+                    .subarray(loesung, i * (k + 2), (i + 1) * (k + 2)),
+                    getXi(i), getXi(i+1));            
+        }
+        g = new BezierSplineFunction(getXi(), functions);
+    }
+
+    /**
+     * Erzeugt eine Instanz des Näherungsverfahrens und berechnet die
+     * Näherungslösung auf einem uniformen Gitter.
+     * @param k Anzahl der Kollokationspunkte je Gitterintervall.
+     * @param l die Anzahl der Gitterintervalle.
      * @param s linkes Intervallende.
      * @param t rechtes Intervallende.
      * @param eta1 linker Randwert.
      * @param eta2 rechter Randwert.
-     * @param p Koeffizientenfunktion in $y'' + p y' + q y = f$.
-     * @param q Koeffizientenfunktion in $y'' + p y' + q y = f$.
-     * @param f in $y'' + p y' + q y = f$.
+     * @param p Koeffizientenfunktion in $-\varepsilon y'' - p y' + q y = f$.
+     * @param q Koeffizientenfunktion in $-\varepsilon y'' - p y' + q y = f$.
+     * @param f in $-\varepsilon y'' - p y' + q y = f$.
      */
-    public BezierKollokation(int k, int l, Dfp s, Dfp t, Dfp eta1, Dfp eta2, 
+    public BezierKollokation(int k, int l, Dfp s, Dfp t, Dfp eta1, Dfp eta2,
             RealFieldUnivariateFunction<Dfp> p,
             RealFieldUnivariateFunction<Dfp> q,
             RealFieldUnivariateFunction<Dfp> f) {
@@ -53,32 +86,27 @@ public class BezierKollokation {
         xi = initialisiereXi(l, s, t);
         tau = initialisiereTau(l);
         mu = initialisiereMus(l);
-        Dfp[][] a = initialisiereA(l, p, q);
+        Dfp[][] a = initialisiereA(l, koerper.getOne().negate(), p, q);
         Dfp[] v = initialisiereV(l, eta1, eta2, f);
-        Dfp[] loesungBlock = new FieldBlockDecomposition(a, k, l)
+        Dfp[] loesung = new FieldBlockDecomposition(a, k, l)
                 .solve(v);
         BezierFunction[] functions = new BezierFunction[l];
         for (int i = 0; i < l; i++) {
             functions[i] = new BezierFunction(koerper, ArrayUtils
-                    .subarray(loesungBlock, i * (k + 2), (i + 1) * (k + 2)),
+                    .subarray(loesung, i * (k + 2), (i + 1) * (k + 2)),
                     getXi(i), getXi(i+1));            
         }
         g = new BezierSplineFunction(getXi(), functions);
     }
     
     /**
-     * Berechnet alle $\mu_j^r := \mu(\tau_j)^r$ und
-     * $(1 - \mu_j)^r := (1 - \mu(\tau_j))^r$ und speichert diese. Vor
-     * dem Aufruf dieser Prozedur muss das Feld {@code Dfp[] tau} mit den
+     * Berechnet alle $\mu_j^r := \mu(\tau_j)^r$ und $(1 - \mu_j)^r := (1 - \mu(\tau_j))^r$ und speichert diese.
+     * Vor dem Aufruf dieser Prozedur muss das Feld $\verb!Dfp[] tau!$ mit den
      * Kollokationspunkten initialisiert sein. Die Berechnung der
      * Funktionswerte ist dabei auf ein Minimum beschränkt unter Ausnutzung
-     * von <p>
-     * $\mu_j = 1 - \mu_{k-j-1}$,
-     * </p>
-     * und äquivalent <p>
-     * $1 - \mu_j = \mu_{k-j-1}$.</p>
-     * @param l die Anzahl der Teilintervalle.
-     * @return ein Feld {@code Dfp[] mu} mit mu[j][r] $= \mu_j^r$.
+     * von $\mu_j = 1 - \mu_{k-j-1}$ und äquivalent $1 - \mu_j = \mu_{k-j-1}$.
+     * @param l die Anzahl der Gitterintervalle.
+     * @return ein Feld $\verb!Dfp[] mu!$ mit $\verb!mu[j][r]! = \mu_j^r$.
      */ 
     private Dfp[][] initialisiereMus (int l) {
         Dfp[][] tempMu = new Dfp[l*k][k+1];
@@ -103,10 +131,7 @@ public class BezierKollokation {
         return tempMu;
     }
     
-    /**
-     * Berechnet die streng monoton steigende Folge
-     * $\tau_j, j = 1, ..., l \cdot k$ im Intervall $[s, t]$.
-     */
+    /** Berechnet die streng monoton steigende Folge $\tau_j, j = 1, ..., l \cdot k$. */
     private Dfp[] initialisiereTau (int l) {
         Dfp[] temptau = new Dfp[l*k];
         GaussLegendrePunkte rhos = new GaussLegendrePunkte(k, koerper);
@@ -122,26 +147,25 @@ public class BezierKollokation {
     }
     
     /**
-     * Berechnet eine streng monoton steigende Folge
-     * $\xi_i, i = 0, ..., l$ im Intervall $[s, t]$ mit $\xi_0 = s,\xi_l = t$.
+     * Berechnet eine im Intervall $[s, t]$ uniforme Gitterknotenfolge
+     * $\xi_i, i = 0, ..., l$ mit $\xi_0 = s,\xi_l = t$.
      * @param s das linke Intervallende von $[s, t]$.
      * @param t das rechte Intervallende von $[s, t]$.
-     * @param l die Anzahl der Teilintervalle.
+     * @param l die Anzahl der Gitterintervalle.
      */
     private Dfp[] initialisiereXi (int l, Dfp s, Dfp t) {
-        Dfp[] tempXi = new Gitterknoten(l, s, t).getXi();
-        return tempXi;
+        return new UniformesGitter(l, s, t).getXi();
     }
     
     /**
      * Berechnet die Einträge der Koeffizientenmatrix $A$ des zu lösenden
      * Gleichungssystems.
-     * @param l die Anzahl der Teilintervalle.
-     * @param p in $y'' + p y' + q y = f$.
-     * @param q in $y'' + p y' + q y = f$.
+     * @param l die Anzahl der Gitterintervalle.
+     * @param p in $-\varepsilon y'' - p y' + q y = f$.
+     * @param q in $-\varepsilon y'' - p y' + q y = f$.
      * @return $A$.
      */
-    private Dfp[][] initialisiereA (int l,
+    private Dfp[][] initialisiereA (int l, Dfp epsilon,
             RealFieldUnivariateFunction<Dfp> p,
             RealFieldUnivariateFunction<Dfp> q) {
         /*
@@ -149,7 +173,9 @@ public class BezierKollokation {
          * Besonderheit, dass die Blöcke der Länge $k + 2 = 3$ nicht mehr 
          * die Stetigkeitsbedingungen aufnehmen können, da sich diese
          * jeweils auf vier Bézierpunkte beziehen. Deshalb wird in diesem
-         * Fall die Matrix geringfügig modifiziert.
+         * Fall die Matrix um eine Spalte erweitert. Eine detaillierte
+         * Beschreibung der Blockstruktur von $A$ ist in
+         * $\verb!FieldBlockDecomposition!$ zu finden.
          */
         Dfp[][] tempA = new Dfp[l * (k + 2)][(k == 1 && l > 1) ? k + 3 : k+2];
         /* Variablen zum Zwischenspeichern wiederholt benötigter
@@ -174,26 +200,21 @@ public class BezierKollokation {
         /* Erzeugen der Blockstruktur durch verschachtelte Schleifen. */
         for (int i = 0; i < l; i++) {
             {
-                /*
-                 * Variablen zum Zwischenspeichern wiederholt benötigter
-                 * Zwischenergebnisse.
-                 */
+                /* Wiederholt benötigte Ausdrücke. */
                 Dfp deltaXiMinus = deltaXi;
                 deltaXi = getXi(i+1).subtract(getXi(i));
                 /*
                  * Befüllt die $2$ Zeilen der Matrix $A$, welche aus den
                  * Stetigkeitsbedingungen für den Übergang vom $i-1$-ten zum
-                 * $i$-ten Teilintervall hervorgehen, $i = 1, \hdots, l-1$.
+                 * $i$-ten Gitterintervall hervorgehen, $i = 1, \hdots, l-1$.
                  */
                 if (i > 0) {
-                    /* Die Stetigkeitsbedingung bezüglich der $C^1$
-                     * -Stetigkeit. */
+                    /* Die Stetigkeitsbedingung bezüglich der $C^1$-Stetigkeit. */
                     tempA[i*(k+2)-1][0] = deltaXi;
                     tempA[i*(k+2)-1][1] = deltaXiMinus.add(deltaXi).negate();
                     tempA[i*(k+2)-1][2] = koerper.getZero();
                     tempA[i*(k+2)-1][3] = deltaXiMinus;
-                    /* Die Stetigkeitsbedingung bezüglich der $C^0$
-                     * -Stetigkeit. */
+                    /* Die Stetigkeitsbedingung bezüglich der $C^0$-Stetigkeit. */
                     tempA[i*(k+2)][0] = koerper.getZero();
                     tempA[i*(k+2)][1] = koerper.getOne();
                     tempA[i*(k+2)][2] = koerper.getOne().negate();
@@ -204,68 +225,95 @@ public class BezierKollokation {
                     }
                 }
             }
+            /* Wiederholt benötigte Ausdrücke. */
             Dfp kPlusDivDeltaXi = deltaXi.reciprocal().multiply(k + 1),
-                    kPlusTimesKDivDeltaXiSqr = kPlusDivDeltaXi.multiply(k)
-                    .divide(deltaXi), deltaXiSqr = deltaXi.pow(2);
+                    epsilonKPlusKDivDeltaXiSqr = kPlusDivDeltaXi
+                    .multiply(k).multiply(epsilon).divide(deltaXi),
+                    deltaXiSqr = deltaXi.pow(2);
             /*
              * Befüllt die $k$ Zeilen der Matrix $A$, welche aus den
-             * Kollokationsbedingungen des $i$-ten Teilintervalls hervorgehen.
+             * Kollokationsbedingungen des $i$-ten Gitterintervalls hervorgehen.
              */
             for (int j = 1; j <= k; j++) {
                 /*
-                 * Berechnung der Funktionswerte $p(\tau_{ik+j})$ und
-                 * $q(\tau_{ik+j})$ für den $j$-ten Kollokationspunkt des 
-                 * $i$-ten Teilintervalls.
+                 * Berechnung der Funktionswerte $p(\tau_{ik+j})$ und $q(\tau_{ik+j})$ für den
+                 * $j$-ten Kollokationspunkt des $i$-ten Gitterintervalls.
                  */
                 Dfp pJ = p.value(getTau(i, j)), qJ = q.value(getTau(i, j));
                 /*
                  * Berechnung des Summanden bezüglich $b_{i0}$ der $j$-ten 
                  * Kollokationsbedingung.
                  */
-                tempA[i*(k+2)+j][0] = getMu(i, j, k - 1, true)
-                        .multiply(kPlusTimesKDivDeltaXiSqr.add(getMu(i, j, 1,
-                                true).multiply(qJ.multiply(getMu(i, j, 1,
-                                        true)).subtract(pJ.multiply(
-                                                kPlusDivDeltaXi)))));
+                tempA[i*(k+2)+j][0] = getMu(i, j, k-1, true)
+                        .multiply(
+                                pJ.multiply(kPlusDivDeltaXi)
+                                .multiply(
+                                        getMu(i, j, 1, true)
+                                        )
+                                .add(qJ.multiply(
+                                        getMu(i, j, 2, true)
+                                        ))
+                                .subtract(epsilonKPlusKDivDeltaXiSqr)
+                                );
                 /*
                  * Berechnung des Summanden bezüglich $b_{i1}$ der $j$-ten 
                  * Kollokationsbedingung.
                  */
                 tempA[i*(k+2)+j][1] = getMu(i, j, k-2, true)
-                        .multiply(k+1).multiply((getMu(i, j, 1, false)
-                                .multiply(k-1).subtract(getMu(i, j, 1, true)
-                                        .multiply(koerper.getTwo()))
-                                .divide(deltaXiSqr).multiply(k))
-                                .add(pJ.divide(deltaXi).multiply(getMu(i, j, 
-                                        1,false).multiply(k+1).negate().add(
-                                                koerper.getOne()))
-                                        .multiply(getMu(i, j, 1, true)))
-                                .add(qJ.multiply(getMu(i, j, 2, true))
-                                        .multiply(getMu(i, j, 1, false))));
+                        .multiply(k+1).multiply(
+                                epsilon.multiply(k)
+                                .divide(deltaXiSqr).multiply(
+                                        koerper.getTwo()
+                                        .subtract(getMu(i, j, 1, false)
+                                                .multiply(k+1))
+                                        )
+                                .subtract(
+                                        pJ.divide(deltaXi)
+                                        .multiply(
+                                                koerper.getOne()
+                                                .subtract(
+                                                        getMu(i,j,1,false)
+                                                        .multiply(k+1)
+                                                        )
+                                                )
+                                        .multiply(getMu(i, j, 1, true))
+                                        )
+                                .add(
+                                        qJ.multiply(getMu(i, j, 2, true))
+                                        .multiply(getMu(i, j, 1, false))
+                                        )
+                                );
                 /*
-                 * Berechnung des Summanden bezüglich
-                 * $b_{i\kappa}, \kappa = 2, ..., k-1$ der $j$-ten
+                 * Berechnung des Summanden bezüglich $b_{i\kappa}, \kappa = 2, ..., k-1$ der $j$-ten
                  * Kollokationsbedingung.
                  */
                 for (int kappa = 2; kappa < k ; kappa++) {
                     tempA[i * (k + 2) + j][kappa] =
-                            kPlusTimesKDivDeltaXiSqr.multiply((getMu(i, j, 2,
-                                    true).multiply(binomM.getUeber(kappa-2)))
-                                    .subtract(getMu(i, j, 1, true)
-                                            .multiply(getMu(i, j, 1, false))
-                                            .multiply(2 * 
-                                                    binomM.getUeber(kappa-1)))
-                                    .add(getMu(i, j, 2, false).multiply(binomM
-                                            .getUeber(kappa))))
-                            .multiply(getMu(i, j, k - 1 - kappa, true)
-                                    .multiply(getMu(i, j, kappa - 2, false)))
-                            .add(pJ.multiply(kPlusDivDeltaXi)
-                                    .multiply(getMu(i, j, 1, false)
+                            epsilonKPlusKDivDeltaXiSqr
+                            .multiply(
+                                    koerper.getTwo().multiply(
+                                            binomM.getUeber(kappa-1))
+                                    .multiply(getMu(i, j, 1, true)
+                                            .multiply(getMu(i, j, 1, false)))
+                                    .subtract(getMu(i, j, 2, true)
+                                            .multiply(binomM
+                                                    .getUeber(kappa-2)))
+                                    .subtract(getMu(i, j, 2, false).multiply(
+                                            binomM.getUeber(kappa)))
+                                    )
+                            .multiply(getMu(i, j, k-1-kappa, true))
+                            .multiply(getMu(i, j, kappa - 2, false))
+                            
+                            .subtract(pJ.multiply(kPlusDivDeltaXi)
+                                    .multiply(
+                                            getMu(i, j, 1, false)
                                             .multiply(binomP.getUeber(kappa))
                                             .negate()
-                                            .add(binomK.getUeber(kappa-1)))
+                                            .add(binomK.getUeber(kappa-1))
+                                            )
                                     .multiply(getMu(i, j, k-kappa, true))
                                     .multiply(getMu(i, j, kappa-1, false)))
+                            
                             .add(qJ.multiply(binomP.getUeber(kappa))
                                     .multiply(getMu(i, j, k+1-kappa, true))
                                     .multiply(getMu(i, j, kappa, false)));
@@ -275,48 +323,57 @@ public class BezierKollokation {
                  * Kollokationsbedingung.
                  */
                 tempA[i*(k+2)+j][k] = getMu(i, j, k-2, false)
-                        .multiply(k+1).multiply(((getMu(i, j, 1, true)
-                                .multiply(k-1)
-                                .subtract(getMu(i, j, 1,false)
-                                        .multiply(koerper.getTwo())))
-                                .multiply(k).divide(deltaXiSqr)).add(pJ
-                                        .divide(deltaXi)
-                                        .multiply(getMu(i, j, 1, false)
+                        .multiply(k+1).multiply(
+                                epsilon.multiply(k)
+                                .divide(deltaXiSqr)
+                                .multiply(
+                                        getMu(i, j, 1, false).multiply(k+1)
+                                        .subtract(k).add(koerper.getOne())
+                                        )
+                                .subtract(
+                                        pJ.divide(deltaXi)
+                                        .multiply(
+                                                getMu(i, j, 1, false)
                                                 .multiply(k+1).negate()
-                                                .add(k))
-                                        .multiply(getMu(i, j, 1, false)))
-                                .add(qJ.multiply(getMu(i, j, 2, false)
-                                        .multiply(getMu(i, j, 1, true)))));
+                                                .add(k)
+                                                )
+                                        .multiply(getMu(i, j, 1, false))
+                                        )
+                                .add(
+                                        qJ.multiply(getMu(i, j, 2, false))
+                                        .multiply(getMu(i, j, 1, true))
+                                        )
+                                );
                 /*
                  * Berechnung des Summanden bezüglich $b_{i,k+1}$ der $j$-ten 
                  * Kollokationsbedingung.
                  */
                 tempA[i*(k+2)+j][k+1] = getMu(i,j,k-1, false)
-                        .multiply(kPlusTimesKDivDeltaXiSqr
-                                .add(getMu(i, j, 1, false).multiply(qJ
-                                        .multiply(getMu(i, j, 1, false))
-                                        .subtract(pJ.multiply(
-                                                kPlusDivDeltaXi)))));
-                if (k == 1 && l > 1) tempA[i*(k+2)+j][k+2] = koerper.getZero();
+                        .multiply(
+                                getMu(i, j, 1, false).multiply(
+                                        qJ
+                                .multiply(
+                                        getMu(i, j, 1, false)
+                                        )
+                                .subtract(
+                                        pJ.multiply(kPlusDivDeltaXi)
+                                        )
+                                )
+                                .subtract(epsilonKPlusKDivDeltaXiSqr)
+                                );
+                if (k == 1 && l >1) tempA[i*(k+2)+j][k+2] = koerper.getZero();
             }
         }
-//        /* Gibt die Matrix $A$ zu Testzwecken aus. */
-//        for (int i = 0; i < l * (k+2); i++) {
-//            for (int j = 0; j < l * (k+2); j++) {
-//                System.out.println("A[" + i + "," + j + "] = " + 
-//                tempA.getEntry(i, j));
-//            }
-//        }
         return tempA;
     }
 
     /**
      * Berechnet die Einträge der rechten Seite $v$ des zu lösenden
      * Gleichungssystems.
-     * @param l die Anzahl der Teilintervalle.
+     * @param l die Anzahl der Gitterintervalle.
      * @param eta1 Randwert $y(s) = \eta_1$.
      * @param eta2 Randwert $y(t) = \eta_2$.
-     * @param f in $y'' + p y' + q y = f$.
+     * @param f in $-\varepsilon y'' + p y' + q y = f$.
      * @return $v$.
      */
     private Dfp[] initialisiereV (int l, Dfp eta1,
@@ -334,18 +391,12 @@ public class BezierKollokation {
             }
         }
         tempV[l * (k+2) - 1] = eta2;
-//        /* Gibt den Vektor $v$ zu Testzwecken aus. */
-//        for (int j = 0; j < l * (k+2); j++) {
-//                System.out.println("v[" + j + "] = " + 
-//                        tempV[j]);
-//        }
         return tempV;
     }
     
     /**
      * Gibt $\tau_j, j = 1, ..., l \cdot k$ zurück.
-     * @param j für das $\tau_j, j = 1, ..., l \cdot k$ zurückgegeben werden
-     * soll.
+     * @param j für das $\tau_j, j = 1, ..., l \cdot k$ zurückgegeben werden soll.
      * @return $\tau_j$
      */
     public Dfp getTau (int j) {
@@ -353,8 +404,8 @@ public class BezierKollokation {
     }
     
     /**
-     * Gibt $\tau_j, j = 1, ..., k$ aus dem $i$-ten Teilintervall zurück.
-     * @param i für das $i$-te Teilintervall.
+     * Gibt $\tau_j, j = 1, ..., k$ aus dem $i$-ten Gitterintervall zurück.
+     * @param i für das $i$-te Gitterintervall.
      * @param j für das $\tau_j, j = 1, ..., k$ zurückgegeben werden soll.
      * @return $\tau_{ik+j}$
      */
@@ -363,31 +414,16 @@ public class BezierKollokation {
     }
     
     /**
-     * alte Version von getMu, die nur die neue mit einem Standardwert
-     * $i = 0$ für das $0$-te Teilintervall aufruft. */
-    public Dfp getMu (int j, int exponent, boolean invers)
-            throws ArrayIndexOutOfBoundsException {
-        return getMu(0, j, exponent, invers);
-    }
-    
-    /**
-     * Gibt $\mu_j^{\operatorname{exponent}}$ oder
-     * $(1 - \mu_j)^{\operatorname{exponent}}$ zurück.
-     * @param i das $i$-te Teilintervall $i = 0, \hdots, l - 1$.
-     * @param j aus $1, ..., k$ zur Auswahl von $\mu_j$ oder
-     * $(1 - \mu_j)$.
-     * @param exponent ${\operatorname{exponent}} \in \{0, ..., k+1\}$, für
-     * den $\mu_j^{\operatorname{exponent}}$ oder
-     * $(1 - \mu_j)^{\operatorname{exponent}}$.
-     * @param invers {@code true}, falls
-     * $(1 - \mu_j)^{\operatorname{exponent}}$ und {@code false},
-     * falls $\mu_j^{\operatorname{exponent}}$ zurückgegeben werden soll. 
-     * @return $\mu_j^{\operatorname{exponent}}$ oder
-     * $(1 - \mu_j)^{\operatorname{exponent}}$
-     * @throws ArrayIndexOutOfBoundsException falls 
-     * ${\operatorname{exponent}} < 0$ oder ${\operatorname{exponent}} > k+1$.
+     * Gibt $\mu_j^{\operatorname{exponent}}$ oder $(1 - \mu_j)^{\operatorname{exponent}}$ zurück.
+     * @param i das $i$-te Gitterintervall $i = 0, \hdots, l - 1$.
+     * @param j aus $1, ..., k$ zur Auswahl von $\mu_j$ oder $(1 - \mu_j)$.
+     * @param exponent ${\operatorname{exponent}} \in \{0, ..., k+1\}$, für den $\mu_j^{\operatorname{exponent}}$ oder $(1 - \mu_j)^{\operatorname{exponent}}$.
+     * @param invers $\verb!true!$, falls $(1 - \mu_j)^{\operatorname{exponent}}$ und $\verb!false!$, falls $\mu_j^{\operatorname{exponent}}$
+     * zurückgegeben werden soll. 
+     * @return $\mu_j^{\operatorname{exponent}}$ oder $(1 - \mu_j)^{\operatorname{exponent}}$
+     * @throws ArrayIndexOutOfBoundsException falls ${\operatorname{exponent}} < 0$ oder ${\operatorname{exponent}} > k+1$.
      */
-    public Dfp getMu (int i, int j, int exponent, boolean invers)
+    private Dfp getMu (int i, int j, int exponent, boolean invers)
             throws ArrayIndexOutOfBoundsException {
         if (exponent < -1 || exponent > k + 1 || i < 0 
                 || i > xi.length + 1)
@@ -416,9 +452,9 @@ public class BezierKollokation {
     }
 
     /**
-     * Gibt eine Kopie des Feldes {@code Dfp[] xi} der Gitterknoten
+     * Gibt eine Kopie des Feldes $\verb!Dfp[] xi!$ der Gitterknoten
      * im Intervall $[s, t]$ zurück.
-     * @return eine Kopie von {@code Dfp[] xi}
+     * @return eine Kopie von $\verb!Dfp[] xi!$
      */
     public Dfp[] getXi() {
         Dfp out[] = new Dfp[xi.length];
@@ -428,209 +464,45 @@ public class BezierKollokation {
     
     /**
      * Gibt $\xi_i, i = 0, ..., l$ zurück.
-     * @param i für das $\xi_i, i = 1, ..., l$ zurückgegeben werden soll.
+     * @param i für das $\xi_i, i = 0, ..., l$ zurückgegeben werden soll.
      * @return $\xi_i$
      */
     public Dfp getXi (int i) {
         return xi[i];
     }
-
-    /** Auszug aus den möglichen Farbnamen in Maple. */
-    enum Linienfarbe {
-        Brown, Crimson, Chocolate, Orange, SkyBlue, Magenta,Gold};
-
+    
     /**
-     * Erzeugt für ein übergebenes $k$ und ein $l$ eine Instanz des
-     * Kollokationsverfahrens zu Beispiel3 aus {G. Müllenheim, 1986}.
-     * @param k die Anzahl der Kollokationspunkte.
-     * @param l Anzahl der Teilintervalle.
-     * @param mode Gibt an, welche Testdaten auf der Konsole ausgegeben werden
-     * sollen: <p>
-     * {@code mode = 1}: Gibt die Differenzen der Ableitungswerte an einigen
-     * Stellen des Intervalls $[0, 1]$ aus.
-     * </p><p>
-     * {@code mode = 2}: Gibt die Maplebefehle zum Plotten der Näherungslösung 
-     * aus. </p><p>
-     * {@code mode = 3}: Gibt die Abweichungen von den Kollokations- und
-     * Randbedingungen aus.
-     * </p><p>
-     * {@code mode = 4}: Gibt die $\mu_j^i$ für alle zulässigen
-     * Parameterwerte aus. </p><p>
-     * {@code mode = 5}: Gibt alle $\tau_j$ aus.
-     * </p><p>
-     * {@code mode = 6}: Gibt alle Abweichungen der Ableitungen $i$-ter
-     * Ordnung, $i = 0, 1, 2$, der korrespondierenden exakten Lösung und der
-     * Näherungslösung aus.
-     * </p><p>
-     * {@code mode = 7}: Gibt alle $\xi_j$ aus.
-     * </p>
-     * @return Ausgabe gemäß {@code mode}.
+     * Gibt die verwendete Genauigkeit zurück.
+     * @return die Anzahl der Nachkommastellen.
      */
-    public static String teste3 (int k, int l, int mode) {
-        String ausgabe = "k = " + k + ", l = " + l + "\n";
-        /* Der Körper auf dem die Funktionen definiert sind. */
-        final DfpField koerper = new DfpField(genauigkeit);
-        /* Der linke Rand $s$ des Kollokationsintervalls $[s, t]$. */
-        final Dfp s = koerper.getOne().negate();
-        /* Der rechte Rand $t$ des Kollokationsintervalls $[s, t]$. */
-        final Dfp t = koerper.getOne();
-        /* Der Randwert $y(s) = \eta_1$. */
-        final Dfp eta1 = koerper.getZero();
-        /* Der Randwert $y(t) = \eta_2$. */
-        final Dfp eta2 = koerper.getZero();
-        /* Die Koeffizientenfunktion $p$ in $y'' + p y' + q y = f$. */
-        final RealFieldPolynomialFunction p = new RealFieldPolynomialFunction(
-                new Dfp[] {koerper.getZero()});
-        /* Die Koeffizientenfunktion $q$ in $y'' + p y' + q y = f$. */
-        final RealFieldPolynomialFunction q = new RealFieldPolynomialFunction(
-                new Dfp[] {koerper.getTwo().negate()});
-        /* Die Funktion $f$ in $y'' + p y' + q y = f$. */
-        final RealFieldUnivariateFunction<Dfp> f =
-                new RealFieldUnivariateFunction<Dfp>() {
-
-            public Dfp value(Dfp x) {
-                Dfp tempX = x.pow(2);
-                return tempX.multiply(4).multiply(tempX.exp());
-            }
-        };
-        final BezierKollokation bkol = new BezierKollokation
-                (k, l, s, t, eta1, eta2, p, q, f);
-        final BezierSplineFunction g = bkol.getG();
-        final Beispiel3 u;
-        Dfp x;
-        final int n = 200;
-        switch (mode) {
-        case 1:
-            u = new Beispiel3(koerper);
-            double xD;
-            final double sD = s.toDouble();
-            for (int i = 0; i <= n; i++) {
-                xD = sD + i * (t.toDouble() - sD)/n;
-                x = koerper.newDfp(xD);
-                for (int j : new int[] {0, 2}) {
-                    ausgabe += "u^(" + j + ")(" + x + ") - g^(" + j + ")(" +
-                            x + ") = " + (u.getAbleitung(xD, j) -
-                                    g.derivative(x, j).toDouble());
-                    if (j < 2) ausgabe += "\n";
-                }
-                if (i < n) ausgabe += "\n";
-            }
-            break;
-        case 2:
-            String werte = "", stellen = "";
-            for (int i = 0; i <= n; i++) {
-                x = s.add((t.subtract(s)).divide(n).multiply(i));
-                werte += g.value(x);
-                stellen += x;
-                if (i != n) {
-                    werte += ",";
-                    stellen += ",";
-                }
-            }
-            ausgabe = "g" + k + l + ":=pointplot([" + stellen + " ], ["+ werte + 
-                    "], legend = \"g" + k + l + "\", color = \"" + 
-                    Linienfarbe.values()[(l+k-1)%Linienfarbe.values().length]
-                            + "\", connect = true):";
-            break;
-        case 3:
-            ausgabe += "g(" + s + ") = " + g.value(s) + "\n";
-            for (int j = 1; j <= l * k; j++) {
-                ausgabe += "tau" + j + " = " + bkol.getTau(j) + 
-                        ": g'' + p * g' + q * g - f = " + 
-                        (g.derivative(bkol.getTau(j), 2).add 
-                                (p.value(bkol.getTau(j)).multiply 
-                                (g.derivative(bkol.getTau(j), 1))).add 
-                                (q.value(bkol.getTau(j)).multiply
-                                (g.derivative(bkol.getTau(j), 0))).subtract 
-                                (f.value(bkol.getTau(j))))
-                        + "\n";
-            }
-            ausgabe += "g(" + t + ")= " + g.value(t);
-            break;
-        case 4:
-            for (int j = 1; j <= l * k; j++) {
-                for (int i = 0; i <= k+1; i++) {
-                    ausgabe += "mu_" + j + "^" + i + " = " + 
-                bkol.getMu(j, i, false) + "\n";
-                }
-            }
-            break;
-        case 5:
-            for (int i = 0; i < l; i++) {
-                for (int j = 1; j <= k; j++) {
-                    ausgabe += "tau_" + (i * k + j) + " = " + bkol.getTau(i,
-                            j) + "\n";
-                }
-            }
-            break;
-        case 6:
-            u = new Beispiel3(koerper);
-            Dfp max = koerper.getZero();
-            for (int j = 1; j <= l * k; j++) {
-//                Ausgabe auf der Konsole während der Berechnungen, um ein 
-//                Bild von der Dauer zu bekommen.
-//                System.out.print("j = " + j + (j == k * l ? "\n" : ", "));
-                Dfp temp = g.value(bkol.getTau(j)).subtract(
-                        u.value(bkol.getTau(j))).abs();
-                if (temp.greaterThan(max)) max = temp;
-            }
-            ausgabe += "E_\\Delta^" + k + (Integer.toString(k).length() == 1 ?
-                    " " : "") + " = " + max + "\n";
-            max = koerper.getZero();
-            for (int i = 0; i <= l; i++) {
-//                Ausgabe auf der Konsole während der Berechnungen, um ein
-//                Bild von der Dauer zu bekommen.
-//                System.out.print("i = " + i + (i == l ? "\n" : ", "));
-               Dfp temp = g.value(bkol.getXi(i)).subtract(
-                        u.value(bkol.getXi(i))).abs();
-                if (temp.greaterThan(max)) max = temp;
-            }
-            ausgabe += "E_\\xi^" + l;
-            for (int m = -4; m < Integer.toString(k).length() - Integer
-                    .toString(l).length() - (Integer.toString(k)
-                            .length() == 1 ? 0 : 1); m++) {
-                ausgabe += " ";
-                }
-            ausgabe += " = " + max + "\n";
-            break;
-        case 7:
-            Dfp[] tempXi = bkol.getXi();
-            for (int j = 0; j <= l; j++) {
-                ausgabe += "xi_" + (j + 1) + " = " + tempXi[j] + "\n";
-            }
-            break;
-        }
-        return ausgabe;
+    public static int getGenauigkeit () {
+        return new Integer(genauigkeit);
     }
 
     /**
      * Erzeugt für ein übergebenes $k$ und ein $l$ eine Instanz des
-     * Kollokationsverfahrens zu Beispiel4 aus {G. Müllenheim, 1986}.
-     * @param k die Anzahl der Kollokationspunkte.
-     * @param l Anzahl der Teilintervalle.
+     * Kollokationsverfahrens für den klassischen Fall.
+     * @param k die Anzahl der Kollokationspunkte je Gitterintervall.
+     * @param l Anzahl der Gitterintervalle.
      * @param mode Gibt an, welche Testdaten auf der Konsole ausgegeben werden
-     * sollen: <p>
-     * {@code mode = 1}: Gibt die Differenzen der Ableitungswerte an einigen
+     * sollen:
+     * $\verb!mode = 1!$: Gibt die Differenzen der Ableitungswerte an einigen
      * Stellen des Intervalls $[0, 1]$ aus.
-     * </p><p>
-     * {@code mode = 2}: Gibt die Maplebefehle zum Plotten der Näherungslösung 
-     * aus.</p><p>
-     * {@code mode = 3}: Gibt die Abweichungen von den Kollokations- und
+     * $\verb!mode = 2!$: Gibt die Maplebefehle zum Plotten der Näherungslösung aus.
+     * $\verb!mode = 3!$: Gibt die Abweichungen von den Kollokations- und
      * Randbedingungen aus.
-     * </p><p>
-     * {@code mode = 4}: Gibt die $\mu_j^i$ für alle zulässigen
-     * Parameterwerte aus. </p><p>
-     * {@code mode = 5}: Gibt alle $\tau_j$ aus.
-     * </p><p>
-     * {@code mode = 6}: Gibt alle Abweichungen der Ableitungen $i$-ter
+     * $\verb!mode = 4!$: Gibt die $\mu_j^i$ für alle zulässigen Parameterwerte aus.
+     * $\verb!mode = 5!$: Gibt alle $\tau_j$ aus.
+     * $\verb!mode = 6!$: Gibt alle Abweichungen der Ableitungen $i$-ter
      * Ordnung, $i = 0, 1, 2$, der korrespondierenden exakten Lösung und der
      * Näherungslösung aus.
-     * </p><p>
-     * {@code mode = 7}: Gibt alle $\xi_j$ aus.
-     * </p>
-     * @return Ausgabe gemäß {@code mode}.
+     * $\verb!mode = 7!$: Gibt alle $\xi_j$ aus.
+     * $\verb!mode = 8!$: Berechnet die Fehler und die experimentelle
+     * Konvergenzordnung für das klassische Beispiel mit $l = 2^7, \hdots, 2^{12}$.
+     * Ein Aufruf in einer Schleife ist nicht nötig.
+     * @return Ausgabe gemäß $\verb!mode!$.
      */
-    public static String teste4 (int k, int l, int mode) {
+    public static String berechneKlassisch (int k, int l, int mode) {
         String ausgabe = "k = " + k + ", l = " + l + "\n";
         /* Der Körper auf dem die Funktionen definiert sind. */
         final DfpField koerper = new DfpField(genauigkeit);
@@ -642,14 +514,14 @@ public class BezierKollokation {
         final Dfp eta1 = koerper.getZero();
         /* Der Randwert $y(t) = \eta_2$. */
         final Dfp eta2 = koerper.getZero();
-        /* Die Koeffizientenfunktion $p$ in $y'' + p y' + q y = f$. */
+        /* Die Koeffizientenfunktion $p$ in $-\varepsilon y'' - p y' + q y = f$. */
         final RealFieldPolynomialFunction p = new RealFieldPolynomialFunction(
                 new Dfp[] {koerper.getZero()});
-        /* Die Koeffizientenfunktion $q$ in $y'' + p y' + q y = f$. */
+        /* Die Koeffizientenfunktion $q$ in $-\varepsilon y'' - p y' + q y = f$. */
         final RealFieldPolynomialFunction q = new RealFieldPolynomialFunction(
                 new Dfp[] {koerper.getTwo().multiply(koerper.getTwo())
                         .negate()});
-        /* Die Funktion $f$ in $y'' + p y' + q y = f$. */
+        /* Die Funktion $f$ in $-\varepsilon y'' - p y' + q y = f$. */
         final RealFieldUnivariateFunction<Dfp> f = new
                 RealFieldUnivariateFunction<Dfp>() {
 
@@ -660,21 +532,22 @@ public class BezierKollokation {
                 return value;
             }
         };
-        final BezierKollokation bkol = new BezierKollokation
-                (k, l, s, t, eta1, eta2, p, q, f);
-        final BezierSplineFunction g = bkol.getG();
-        final Beispiel4 u;
-        Dfp x;
-        final int n = 200;
+        BezierKollokation bkol = new BezierKollokation(k, l, s, t, eta1,
+                eta2, p, q, f);
+        BezierSplineFunction g = bkol.getG();
+        final KlassischesBeispiel u;
+        Dfp x, tMinusSDivN;
+        int n;
         switch (mode) {
         case 1:
-            u = new Beispiel4(koerper);
+            n = 50;
+            u = new KlassischesBeispiel(koerper);
             double xD;
             final double sD = s.toDouble();
             for (int i = 0; i <= n; i++) {
                 xD = sD + i * (t.toDouble() - sD)/n;
                 x = koerper.newDfp(xD);
-                for (int j : new int[] {0, 2}) {
+                for (int j : new int[] {0, 1, 2}) {
                     ausgabe += "u^(" + j + ")(" + x + ") - g^(" + j + ")(" +
                             x + ") = " + (u.getAbleitung(xD, j) -
                                     g.derivative(x, j).toDouble());
@@ -684,17 +557,19 @@ public class BezierKollokation {
             }
             break;
         case 2:
+            n = 200;
             String werte = "", stellen = "";
+            tMinusSDivN = (t.subtract(s)).divide(n);
             for (int i = 0; i <= n; i++) {
-                x = s.add((t.subtract(s)).divide(n).multiply(i));
-                werte += g.value(x);
-                stellen += x;
+                x = s.add(tMinusSDivN.multiply(i));
+                werte += g.value(x).toDouble();
+                stellen += x.toDouble();
                 if (i != n) {
                     werte += ",";
                     stellen += ",";
                 }
             }
-            ausgabe = "u" + k + l + ":=pointplot([" + stellen + " ], ["+ werte + 
+            ausgabe = "u" + k + l + ":=pointplot([" + stellen + " ], ["+werte+
                     "], legend = \"u" + k + l + "\", color = \"" + 
                     Linienfarbe.values()[(l+k-1)%Linienfarbe.values().length]
                             + "\", connect = true):";
@@ -704,7 +579,7 @@ public class BezierKollokation {
             for (int j = 1; j <= l * k; j++) {
                 ausgabe += "tau" + j + " = " + bkol.getTau(j) + 
                         ": g'' + p * g' + q * g - f = " + 
-                        (g.derivative(bkol.getTau(j), 2).add 
+                        (g.derivative(bkol.getTau(j), 2).subtract 
                                 (p.value(bkol.getTau(j)).multiply 
                                 (g.derivative(bkol.getTau(j), 1))).add 
                                 (q.value(bkol.getTau(j)).multiply
@@ -718,7 +593,7 @@ public class BezierKollokation {
             for (int j = 1; j <= l * k; j++) {
                 for (int i = 0; i <= k+1; i++) {
                     ausgabe += "mu_" + j + "^" + i + " = " + 
-                bkol.getMu(j, i, false) + "\n";
+                bkol.getMu(j/l, j%l, i, false) + "\n";
                 }
             }
             break;
@@ -731,12 +606,9 @@ public class BezierKollokation {
             }
             break;
         case 6:
-            u = new Beispiel4(koerper);
+            u = new KlassischesBeispiel(koerper);
             Dfp max = koerper.getZero();
             for (int j = 1; j <= l * k; j++) {
-//                Ausgabe auf der Konsole während der Berechnungen, um ein 
-//                Bild von der Dauer zu bekommen.
-//                System.out.print("j = " + j + (j == k * l ? "\n" : ", "));
                 Dfp temp = g.value(bkol.getTau(j)).subtract(
                         u.value(bkol.getTau(j))).abs();
                 if (temp.greaterThan(max)) max = temp;
@@ -745,9 +617,6 @@ public class BezierKollokation {
                     " " : "") + " = " + max + "\n";
             max = koerper.getZero();
             for (int i = 0; i <= l; i++) {
-//                Ausgabe auf der Konsole während der Berechnungen, um ein
-//                Bild von der Dauer zu bekommen.
-//                System.out.print("i = " + i + (i == l ? "\n" : ", "));
                 Dfp temp = g.value(bkol.getXi(i)).subtract(
                         u.value(bkol.getXi(i))).abs();
                 if (temp.greaterThan(max)) max = temp;
@@ -766,21 +635,98 @@ public class BezierKollokation {
                 ausgabe += "xi_" + (j + 1) + " = " + tempXi[j] + "\n";
             }
             break;
+        case 8:
+            ausgabe = "";
+            int[] ls = new int[] {1, 2, 3, 4, 5, 6, 7, 8, 16, 32};
+            /* 
+             * max enthält die Fehler und experimentellen Konvergenzordnungen,
+             * wobei $\verb!max[0]! = E_\infty, \verb!max[1]! = \alpha_\infty,$ $\verb!max[2]! = E_\xi, \verb!max[3]! = \alpha_\xi,$
+             */
+            Dfp[][] konvergenz = new Dfp[ls.length][4];
+            for (int i = 0; i < ls.length; i++) {
+                konvergenz[i][0] = koerper.getZero();
+                konvergenz[i][2] = koerper.getZero();
+            }
+            /*
+             * Anzahl der pro Gitterintervall gleichverteilten Stellen, für 
+             * welche die Näherung der Maximumnorm berechnet wird. Für
+             * Berechnungen die bis $k = 10, l = 32$ Änderungen der Norm
+             * kleiner $1^{-30}$ ergeben, sollte $n \geq 200$ sein.
+             */
+            n = 50; 
+            u = new KlassischesBeispiel(koerper);
+            for (int nu : new int[] {0, 1, 2}) {
+                System.out.println("k = " + k + ", nu = " + nu + ":\n");
+                for (int i = 0; i < ls.length; i++) {
+                    int tempL = ls[i];
+                    tMinusSDivN = (t.subtract(s)).divide(n * tempL);
+                    bkol = new BezierKollokation (k, tempL, s,
+                            t, eta1, eta2, p, q, f);
+                    g = bkol.getG();
+                    for (int j = 0; j <= n * tempL; j++) {
+                        x = s.add(tMinusSDivN.multiply(j));
+                        Dfp temp = g.derivative(x, nu).subtract(
+                                u.getAbleitung(x, nu)).abs();
+                        if (temp.greaterThan(konvergenz[i][0])) {
+                            konvergenz[i][0] = temp;
+                        }
+                    }
+                    System.out.print("l = "); 
+                    for (int m = 0; m < 2 - Integer.toString(ls[i]).length();
+                            m++) {
+                        System.out.print(" ");
+                    };
+                    System.out.println(ls[i] + ": E_\\infty = " + 
+                    konvergenz[i][0]);
+                    if (i > 0) {
+                        konvergenz[i][1] = konvergenz[i][0].divide(
+                                konvergenz[i-1][0]).log().divide(
+                                FastMath.log((double)ls[i-1] / ls[i]));
+                        for (int m = 0; m < 2 - Integer.toString(ls[i])
+                                .length(); m++) {
+                            System.out.print(" ");
+                        };
+                        System.out.println("       \\alpha_" + ls[i] + " = " +
+                                konvergenz[i][1]);
+                    }
+                    for (int j = 0; j <= ls[i]; j++) {
+                        Dfp temp = g.derivative(bkol.getXi(j), nu).subtract(
+                                u.getAbleitung(bkol.getXi(j), nu)).abs();
+                        if (temp.greaterThan(konvergenz[i][2])) {
+                            konvergenz[i][2] = temp;
+                        }
+                    }
+                    System.out.println("           E_\\xi = " + 
+                    konvergenz[i][2]);
+                    if (i > 0) {
+                        konvergenz[i][3] = konvergenz[i][2].divide(
+                                konvergenz[i-1][2]).log().divide(FastMath
+                                        .log((double)ls[i-1] / ls[i]));
+                        for (int m = 0; m < 2 - Integer.toString(ls[i])
+                                .length();
+                                m++) {
+                            System.out.print(" ");
+                        };
+                        System.out.println("        \\beta_" + ls[i] + " = " + 
+                                konvergenz[i][3]);
+                    }
+                    System.out.println();
+                }
+            }
+            break;
         }
         return ausgabe;
     }
     
     /**
-     * Testen zweier Beispiele in verschiedenen Modi durch Ausgabe
-     * interessierender Daten auf der Konsole.
+     * Berechnen verschiedener Daten in Abhängigkeit des angegebenen Modus
+     * und Ausgabe auf der Konsole.
      */
     public static void main (String[] args) {
-        for (int l : new int[] {2, 3, 4}) {
-            for (int k : new int[] {1, 3, 5, 10}) {
-//                System.out.println("Beispiel 3:");
-                System.out.println(teste3(k, l, 6));
-//                System.out.println("Beispiel 4:");
-//                System.out.println(teste4(k, l, 6));
+        int[] n = new int[] {1, 2, 3, 4, 5, 6, 7, 8, 16, 32};
+        for (int k : new int[] {1, 2, 4}) {
+            for (int l : n) {
+                System.out.println(berechneKlassisch(k, l, 6));
             }
         }
     }
