@@ -11,13 +11,13 @@ public class Binomialkoeffizient {
      * $n$ über $k, k = 0, ..., n$ vorhält.
      */
     public Binomialkoeffizient(int n) {
+        /*
+          Bei der Berechnung der Werte wird die Symmetrie des
+          Binomialkoeffizienten ausgenutzt und für $k > n - k$ der
+          bereits berechnete Wert für $n - k$ genutzt.
+         */
         this.n = n;
         binom = new int[n+1];
-        /**
-         * Bei der Berechnung der Werte wird die Symmetrie des
-         * Binomialkoeffizienten ausgenutzt und für $k > n - k$ der
-         * bereits berechnete Wert für $n - k$ genutzt.
-         */
         for (int k = 0; k < binom.length; k++) {
             if (k > n - k)
                 binom[k] = binom[n - k];
@@ -50,7 +50,6 @@ public class Binomialkoeffizient {
     
     /**
      * Gibt alle Werte $n$ über $k, k = 0, ..., n$ zurück.
-     * @param k für das $n$ über $k$ zurückgegeben werden soll.
      * @return $\verb!double[] (! \binom{n}{0}, \hdots, \binom{n}{n}\verb!)!$.
      */
     public int[] getBinom() {
