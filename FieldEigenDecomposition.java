@@ -4,7 +4,7 @@ import org.apache.commons.math3.exception.MaxCountExceededException;
 import org.apache.commons.math3.exception.util.LocalizedFormats;
 
 /**
- * Calculates the eigenvalues of a real matrix taking the algortihm from
+ * Calculates the eigenvalues of a real matrix taking the algorithm from
  * $\verb!EigenDecomposition!$ and adapting it to $\verb!Dfp!$ matrices. This class is similar
  * in spirit to the $\verb!EigenvalueDecomposition!$ class from the JAMA library, with the
  * limitation to calculating Eigenvalues of symmetric tridiagonal matrices
@@ -41,7 +41,6 @@ public class FieldEigenDecomposition {
     private Dfp[] findEigenValues(Dfp[] neben) {
         final int n = neben.length;
         Dfp[] tempEigenvalues = new Dfp[n];
-        final Dfp[] e = neben;
         for (int i = 0; i < n; i++) {
             tempEigenvalues[i] = koerper.getZero();
         }
@@ -53,7 +52,7 @@ public class FieldEigenDecomposition {
                 for (m = j; m < n - 1; m++) {
                     Dfp delta = (tempEigenvalues[m].abs())
                             .add(tempEigenvalues[m + 1].abs());
-                    if ((e[m].abs()).add(delta).equals(delta)) {
+                    if ((neben[m].abs()).add(delta).equals(delta)) {
                         break;
                     }
                 }
@@ -65,40 +64,40 @@ public class FieldEigenDecomposition {
                     its++;
                     Dfp q = (tempEigenvalues[j + 1]
                             .subtract(tempEigenvalues[j]))
-                            .divide(e[j].multiply(2));
+                            .divide(neben[j].multiply(2));
                     Dfp t = (koerper.getOne().add(q.pow(2))).sqrt();
                     if (q.lessThan(koerper.getZero())) {
                         q = tempEigenvalues[m].subtract(tempEigenvalues[j])
-                                .add(e[j].divide(q.subtract(t)));
+                                .add(neben[j].divide(q.subtract(t)));
                     } else {
                         q = tempEigenvalues[m].subtract(tempEigenvalues[j])
-                                .add(e[j].divide(q.add(t)));
+                                .add(neben[j].divide(q.add(t)));
                     }
                     Dfp u = koerper.getZero();
                     Dfp s = koerper.getOne();
                     Dfp c = koerper.getOne();
                     int i;
                     for (i = m - 1; i >= j; i--) {
-                        Dfp p = s.multiply(e[i]);
-                        Dfp h = c.multiply(e[i]);
+                        Dfp p = s.multiply(neben[i]);
+                        Dfp h = c.multiply(neben[i]);
                         if ((p).abs().greaterThan(q.abs()) || 
                                 (p).abs().equals(q.abs())) {
                             c = q.divide(p);
                             t = (c.pow(2).add(koerper.getOne())).sqrt();
-                            e[i + 1] = p.multiply(t);
+                            neben[i + 1] = p.multiply(t);
                             s = t.reciprocal();
                             c = c.multiply(s);
                         } else {
                             s = p.divide(q);
                             t = (s.pow(2).add(koerper.getOne())).sqrt();
-                            e[i + 1] = q.multiply(t);
+                            neben[i + 1] = q.multiply(t);
                             c = t.reciprocal();
                             s = s.multiply(c);
                         }
-                        if (e[i + 1].isZero()) {
+                        if (neben[i + 1].isZero()) {
                             tempEigenvalues[i + 1] = tempEigenvalues[i + 1]
                                     .subtract(u);
-                            e[m] = koerper.getZero();
+                            neben[m] = koerper.getZero();
                             break;
                         }
                         q = tempEigenvalues[i + 1].subtract(u);
@@ -112,8 +111,8 @@ public class FieldEigenDecomposition {
                         continue;
                     }
                     tempEigenvalues[j] = tempEigenvalues[j].subtract(u);
-                    e[j] = q;
-                    e[m] = koerper.getZero();
+                    neben[j] = q;
+                    neben[m] = koerper.getZero();
                 }
             } while (m != j);
         }
