@@ -2,9 +2,9 @@ import org.apache.commons.math3.dfp.Dfp;
 import org.apache.commons.math3.util.FastMath;
 
 /**
- * Erzeugt ein Feld, das für einen übergebenen Paramter $l$ 
+ * Erzeugt ein Feld, das für einen übergebenen Parameter $l$
  * äquidistante Punkte $\xi_i, i = 0, \hdots, l$, im Intervall $[s, t]$
- * zurückgibt, mit $\xi_0 = s, \xi_l = t$.
+ * zurück gibt, mit $\xi_0 = s, \xi_l = t$.
  */
 public class Gitterknoten {
 
@@ -33,7 +33,7 @@ public class Gitterknoten {
     private Dfp[] setzePunkte(int l, Dfp s, Dfp t) {
         final Dfp c = t.subtract(s).divide(l);
         Dfp[] tempXi = new Dfp[l+1];
-        for (int j = 0; j <= FastMath.floor(l/2); j++) {
+        for (int j = 0; j <= FastMath.floor(l/2.); j++) {
             Dfp temp = c.multiply(j);
             tempXi[j] = s.add(temp);
             tempXi[l - j] = t.subtract(temp);
