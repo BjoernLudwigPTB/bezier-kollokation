@@ -60,7 +60,7 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
          * @return Funktionswert an der Stelle $x$.
          */
         public Dfp value (Dfp x) {
-            return deCasteljau(x, getMu(x), b.length - 1, 0);
+            return deCasteljau(getMu(x), b.length - 1, 0);
         }
         
         /** 
@@ -78,28 +78,26 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
              * $\nu = 0, 1, 2$ aus Geschwindigkeitsgründen hart codiert sind.
              */
             switch (nu) {
-            case 0:
-                return value(x);
-            case 1:
+                case 1:
                 return tMinusS.reciprocal()
-                .multiply(b.length - 1).multiply(deCasteljau(x, mu, b.length
-                        -2, 1).subtract(deCasteljau(x, mu, b.length - 2, 0)));
+                .multiply(b.length - 1).multiply(deCasteljau(mu, b.length
+                        -2, 1).subtract(deCasteljau(mu, b.length - 2, 0)));
             case 2:
                 return tMinusSSqr.reciprocal()
                 .multiply(b.length - 1).multiply(b.length - 2)
-                .multiply(deCasteljau(x, mu, b.length - 3, 0)
+                .multiply(deCasteljau(mu, b.length - 3, 0)
                         .subtract(koerper.getTwo().multiply(
-                                deCasteljau(x, mu, b.length - 3, 1)))
-                        .add(deCasteljau(x, mu, b.length - 3, 2)));
+                                deCasteljau(mu, b.length - 3, 1)))
+                        .add(deCasteljau(mu, b.length - 3, 2)));
             default:
                 Dfp tempValue = koerper.getZero();
                 Binomialkoeffizient mUeberI = new Binomialkoeffizient(nu);
                 int n = 1;
                 for (int i = 0; i <= nu; i++) {
                     tempValue = tempValue.add(((nu-i)%2 == 0) ? 
-                            deCasteljau(x, mu, b.length-1-nu, i)
+                            deCasteljau(mu, b.length-1-nu, i)
                             .multiply(mUeberI.getUeber(i))
-                            : deCasteljau(x, mu, b.length-1-nu, i)
+                            : deCasteljau(mu, b.length-1-nu, i)
                             .multiply(mUeberI.getUeber(i)).negate());
                     if (i < nu) n *= b.length - 1 - i; 
                 }
@@ -109,23 +107,21 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
         
         /**
          * Führt den Algorithmus von deCasteljau durch.
-         * @param x Stelle die ausgewertet werden soll.
          * @param mu Quotient $(x-s)/(t-s)$ für die Berechnung der Rekursion
          * mit den Intervallgrenzen $[s, t]$.
          * @param r oberer Index $b_i^r$.
          * @param i unterer Index $b_i^r$.
-         * @param b Feld der Bézier-Punkte.
          * @return Für $i = 0, r = n}$ der Funktionswert des Polynoms in
          * Bézier-Darstellung mit Bézier-Punkten $\verb!doube[] b!$ an der
          * Stelle $x$.
          */
-        public Dfp deCasteljau (Dfp x, Dfp mu, int r, int i) {
+        public Dfp deCasteljau(Dfp mu, int r, int i) {
             if (r == 0)
                 return b[i];
             else
-                return  (mu.multiply(deCasteljau(x, mu, r - 1, i + 1)))
+                return  (mu.multiply(deCasteljau(mu, r - 1, i + 1)))
                         .add(koerper.getOne().subtract(mu)
-                                .multiply(deCasteljau(x, mu, r - 1, i)));
+                                .multiply(deCasteljau(mu, r - 1, i)));
         }
         
         /**
@@ -143,7 +139,7 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
          * @return a fresh copy of the bezierpoints array.
          */
         public Dfp[] getBezierpunkte() {
-            return (Dfp[]) b.clone();
+            return b.clone();
         }
         
         /**
