@@ -54,7 +54,7 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
      * $\verb!functions.length \!= knoten.length - 1!$.
      *
      */
-    public BezierSplineFunction (Dfp knoten[], BezierFunction functions[])
+    public BezierSplineFunction (Dfp[] knoten, BezierFunction[] functions)
         throws NullArgumentException, NumberIsTooSmallException,
                DimensionMismatchException{
         if (knoten == null ||
