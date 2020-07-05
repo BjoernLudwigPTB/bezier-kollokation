@@ -38,7 +38,6 @@ public class FieldBlockDecomposition {
     /**
      * Erzeugt eine Instanz des Zerlegers der Matrix $A$.
      * @param a die Matrix $A$ für die $Ax = b$ gelöst werden soll.
-     * @param b der Vektor $b$ für den $Ax = b$ gelöst werden soll.
      * @param k die Anzahl der Kollokationsbedingungen mit der die Matrix
      * erstellt wurde.
      * @param l die Anzahl der Gitterintervalle. 
@@ -56,7 +55,7 @@ public class FieldBlockDecomposition {
         }
         this.k = k;
         this.l = l;
-        koerper = (DfpField) a[0][0].getField();
+        koerper = a[0][0].getField();
         this.a = a;
     }
     
@@ -102,7 +101,7 @@ public class FieldBlockDecomposition {
         /*
          * Nimmt die Struktur der Blockmatrix auf. Dabei ist $\verb!structure[i][0]!$
          * die Anzahl der Zeilen in Block $i$ und $\verb!structure[i][1]!$ die Anzahl
-         * der möglichen Pivotschritte in Block $i$, bevor möglichweise eine
+         * der möglichen Pivotschritte in Block $i$, bevor möglicherweise eine
          * Zeile aus dem nächsten Block in den Block hineinpivotiert wird.
          */
         int[][] structure;
