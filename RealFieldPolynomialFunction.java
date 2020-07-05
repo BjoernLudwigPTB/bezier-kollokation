@@ -86,7 +86,6 @@ public class RealFieldPolynomialFunction
         /**
          * Erzeugt aus einer $\verb!RealFieldPolynomialFunction!$ eine
          * $\verb!PolynomialFunction!$ mit entsprechend geringerer Genauigkeit.
-         * @param f ist die umzuwandelnde $\verb!RealFieldPolynomialFunction!$.
          * @return Ein Objekt vom Typ $\verb!PolynomialFunction!$.
          */
         public PolynomialFunction getPolynomialFunction () {
