@@ -37,18 +37,14 @@ UnivariateFunction {
      * @return $u^{(\nu)}(x)$.
      */
     public Dfp getAbleitung(Dfp x, int nu) {
-        switch (nu) {
-        case 0:
-            return value(x);
-        case 1:
-            return koerper.getTwo().multiply(x).subtract(koerper.getOne())
+        return switch (nu) {
+            case 0 -> value(x);
+            case 1 -> koerper.getTwo().multiply(x).subtract(koerper.getOne())
                     .sinh().multiply(koerper.getTwo());
-        case 2:
-            return koerper.getTwo().multiply(x).subtract(koerper.getOne())
+            case 2 -> koerper.getTwo().multiply(x).subtract(koerper.getOne())
                     .cosh().multiply(koerper.getTwo().pow(2));
-        default:
-            return null;
-        }
+            default -> null;
+        };
     }
     
     /** 
