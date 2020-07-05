@@ -1,6 +1,8 @@
 import org.apache.commons.math3.analysis.RealFieldUnivariateFunction;
 import org.apache.commons.math3.dfp.Dfp;
-import org.apache.commons.math3.exception.*;
+import org.apache.commons.math3.exception.DimensionMismatchException;
+import org.apache.commons.math3.exception.NullArgumentException;
+import org.apache.commons.math3.exception.NumberIsTooSmallException;
 import org.apache.commons.math3.exception.util.LocalizedFormats;
 
 /**
@@ -25,8 +27,10 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
  * than or equal to $x$. The value returned is
  * $\operatorname{functions}[j](x)$.
  */
-public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
-    /** Spline segment interval delimiters of size $l + 1$ for $l$ segments.*/
+public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp> {
+    /**
+     * Spline segment interval delimiters of size $l + 1$ for $l$ segments.
+     */
     private final Dfp[] knoten;
     /**
      * The polynomial functions that make up the spline.  The first element
@@ -45,20 +49,20 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
      * delimiters and polynomials. The constructor copies both arrays and
      * assigns the copies to the $\verb!gitterKnoten!$ and
      * $\verb!polynomials!$ properties, respectively.
-     * @param knoten Spline segment interval delimiters.
-     * @param functions Polynomial functions that make up the spline.
-     * @throws NullArgumentException if either of the input arrays is
-     * $\verb!null!$.
-     * @throws NumberIsTooSmallException if knoten has length less than 2.
-     * @throws DimensionMismatchException if 
-     * $\verb!functions.length \!= knoten.length - 1!$.
      *
+     * @param knoten    Spline segment interval delimiters.
+     * @param functions Polynomial functions that make up the spline.
+     * @throws NullArgumentException      if either of the input arrays is
+     *                                    $\verb!null!$.
+     * @throws NumberIsTooSmallException  if knoten has length less than 2.
+     * @throws DimensionMismatchException if
+     *                                    $\verb!functions.length \!= knoten.length - 1!$.
      */
-    public BezierSplineFunction (Dfp[] knoten, BezierFunction[] functions)
-        throws NullArgumentException, NumberIsTooSmallException,
-               DimensionMismatchException{
+    public BezierSplineFunction(Dfp[] knoten, BezierFunction[] functions)
+            throws NullArgumentException, NumberIsTooSmallException,
+            DimensionMismatchException {
         if (knoten == null ||
-            functions == null) {
+                functions == null) {
             throw new NullArgumentException();
         }
         if (knoten.length < 2) {
@@ -70,7 +74,7 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
             throw new DimensionMismatchException(functions.length,
                     knoten.length);
         }
-        this.l = knoten.length -1;
+        this.l = knoten.length - 1;
         this.knoten = new Dfp[l + 1];
         System.arraycopy(knoten, 0, this.knoten, 0, l + 1);
         this.functions = new BezierFunction[l];
@@ -81,11 +85,12 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
      * Compute the value for the function.
      * See above for details on the algorithm for
      * computing the value of the function.
+     *
      * @param x Point for which the function value should be computed.
      * @return the value.
      */
     @Override
-    public Dfp value (Dfp x) {
+    public Dfp value(Dfp x) {
         return functions[getInterval(x)].value(x);
     }
 
@@ -93,16 +98,18 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
      * Compute the derivative for the function.
      * See above for details on the algorithm for
      * computing the derivative of the function.
+     *
      * @param x Point for which the function derivative should be computed.
      * @return the value.
      */
-    public Dfp derivative (Dfp x, int nu) {
+    public Dfp derivative(Dfp x, int nu) {
         return functions[getInterval(x)].derivative(x, nu);
     }
 
     /**
      * Get the number of spline segments It is also the number of functions
      * and the number of knoten $- 1$.
+     *
      * @return the number of spline segments.
      */
     public int getL() {
@@ -113,6 +120,7 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
      * Get a copy of the Bézierfunctions array.
      * It returns a fresh copy of the array. Changes made to the copy will
      * not affect the $\verb!functions!$ property.
+     *
      * @return the functions.
      */
     public BezierFunction[] getPolynomials() {
@@ -123,24 +131,26 @@ public class BezierSplineFunction implements RealFieldUnivariateFunction<Dfp>{
      * Get an array copy of the Gitterknoten.
      * It returns a fresh copy of the array. Changes made to the copy
      * will not affect the knots property.
+     *
      * @return the Gitterknoten.
      */
     public Dfp[] getKnots() {
         return knoten.clone();
     }
-    
+
     /**
      * Berechnet das zugehörige Intervall für $x$.
+     *
      * @param x der Wert für den das Intervall bestimmt werden soll.
      * @return $i \in \{0, \hdots, l - 1\}$.
      */
-    private int getInterval (Dfp x) {
+    private int getInterval(Dfp x) {
         if (x.lessThan(knoten[1]) || knoten.length == 2) {
             return 0;
         } else {
             int i;
             for (i = 1; i < l - 1; i++) {
-                if (x.lessThan(knoten[i+1])) break;
+                if (x.lessThan(knoten[i + 1])) break;
             }
             return i;
         }

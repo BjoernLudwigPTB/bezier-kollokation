@@ -1,7 +1,7 @@
 import org.apache.commons.math3.dfp.Dfp;
 import org.apache.commons.math3.dfp.DfpField;
 import org.apache.commons.math3.exception.DimensionMismatchException;
-import org.apache.commons.math3.linear.*;
+import org.apache.commons.math3.linear.SingularMatrixException;
 
 /**
  * Implementierung des Algorithmus $\verb!bandet1!$ von Martin und Wilkinson (
@@ -16,7 +16,7 @@ import org.apache.commons.math3.linear.*;
  * welche die Restmatrix einbeziehen, in $\textsc{T. Linß}$ (Numerische Mathematik I
  * (2015) pp. 77-78) genannt wird. Die Blockstruktur der Kollokationsmatrix
  * ist dabei auf eine Kollokationsmatrix zur Bestimmung eines $C^1$-Splines
- * ausgelegt, der eine Zwei-Punkt-Randwertaufgabe löst. Das heißt die Matrix 
+ * ausgelegt, der eine Zwei-Punkt-Randwertaufgabe löst. Das heißt die Matrix
  * $A$ beginnt mit einer Zeile zur Randbedingungen am Anfang des betrachteten
  * Intervalls, gefolgt von $k$ Kollokationsbedingungen, auf die wiederum bis
  * zum vorletzten der $l-1$ Blöcke $2$ Stetigkeitsbedingungen folgen und an
@@ -25,42 +25,51 @@ import org.apache.commons.math3.linear.*;
  */
 public class FieldBlockDecomposition {
 
-    /** Körper auf dem die Zerlegung definiert ist. */
+    /**
+     * Körper auf dem die Zerlegung definiert ist.
+     */
     private final DfpField koerper;
-    /** Matrix $A$ im Gleichungssystem $Ax = b$. */
+    /**
+     * Matrix $A$ im Gleichungssystem $Ax = b$.
+     */
     private final Dfp[][] a;
-    /** Anzahl der Blöcke in der Matrix $A$. */
+    /**
+     * Anzahl der Blöcke in der Matrix $A$.
+     */
     private final int k;
-    /** 
-     * Die Anzahl der Kollokationsbedingungen je Block. */
+    /**
+     * Die Anzahl der Kollokationsbedingungen je Block.
+     */
     private final int l;
-    
+
     /**
      * Erzeugt eine Instanz des Zerlegers der Matrix $A$.
+     *
      * @param a die Matrix $A$ für die $Ax = b$ gelöst werden soll.
      * @param k die Anzahl der Kollokationsbedingungen mit der die Matrix
-     * erstellt wurde.
-     * @param l die Anzahl der Gitterintervalle. 
+     *          erstellt wurde.
+     * @param l die Anzahl der Gitterintervalle.
      */
-    public FieldBlockDecomposition (Dfp[][] a, final int k,
-            final int l) {
-        if (a.length != l * (k + 2) && a[0].length == k+2)
-            throw new DimensionMismatchException(a.length, l * (k+2));
+    public FieldBlockDecomposition(Dfp[][] a, final int k,
+                                   final int l) {
+        if (a.length != l * (k + 2) && a[0].length == k + 2)
+            throw new DimensionMismatchException(a.length, l * (k + 2));
         if (k == 1 && l > 1) {
             if (a[0].length != 4)
-                throw new DimensionMismatchException(a[0].length, k+2);
+                throw new DimensionMismatchException(a[0].length, k + 2);
         } else {
-            if (a[0].length != k+2)
-                throw new DimensionMismatchException(a[0].length, k+2);
+            if (a[0].length != k + 2)
+                throw new DimensionMismatchException(a[0].length, k + 2);
         }
         this.k = k;
         this.l = l;
         koerper = a[0][0].getField();
         this.a = a;
     }
-    
+
     /**
      * Löst für einen übergebenen Vektor $b$ das Gleichungssystem $Ax = b$.
+     *
      * @param b die rechte Seite des Gleichungssystems.
      * @return Die Lösung $x$ des Gleichungssystems $Ax = b$.
      */
@@ -110,7 +119,7 @@ public class FieldBlockDecomposition {
              * Im Falle, dass nur ein Block vorhanden ist, wird über alle
              * Zeilen pivotiert.
              */
-            structure = new int[][] {{k+2, k+2}};
+            structure = new int[][]{{k + 2, k + 2}};
         } else {
             /*
              * Sonst bilden die jeweils $k$ Kollokationsbedingungen jedes
@@ -120,14 +129,14 @@ public class FieldBlockDecomposition {
              * Kollokationsbedingungen.
              */
             structure = new int[2 * l - 1][2];
-            structure[0] = new int[] {k+1, k};
+            structure[0] = new int[]{k + 1, k};
             for (int i = 1; i < l; i++) {
-                structure[2*i-1] = new int[] {2, 2};
-                structure[2*i] = new int[] {k, k};
+                structure[2 * i - 1] = new int[]{2, 2};
+                structure[2 * i] = new int[]{k, k};
             }
             /*
              * Für $k = 1$ entsteht bei der blockweisen Bearbeitung die
-             * Besonderheit, dass die Blöcke der Länge $k + 2 = 3$ nicht mehr 
+             * Besonderheit, dass die Blöcke der Länge $k + 2 = 3$ nicht mehr
              * die Stetigkeitsbedingungen aufnehmen können, da sich diese
              * jeweils auf vier Bézierpunkte beziehen. Deshalb wird in diesem
              * Fall die Matrix geringfügig umsortiert und $\verb!structure!$
@@ -138,8 +147,8 @@ public class FieldBlockDecomposition {
              * Kollokationsbedingung eins nach rechts verschoben werden.
              */
             if (k == 1) {
-                structure[structure.length-2] = structure[structure.length-1];
-                structure[structure.length-1] = new int[] {3, 4};
+                structure[structure.length - 2] = structure[structure.length - 1];
+                structure[structure.length - 1] = new int[]{3, 4};
                 a[(l - 1) * 3][0] = a[(l - 1) * 3][1];
                 a[(l - 1) * 3][1] = a[(l - 1) * 3][2];
                 a[(l - 1) * 3][2] = koerper.getZero();
@@ -148,15 +157,15 @@ public class FieldBlockDecomposition {
                 a[(l - 1) * 3 + 1][1] = a[(l - 1) * 3 + 1][0];
                 a[(l - 1) * 3 + 1][0] = koerper.getZero();
             } else
-                structure[structure.length-1] = new int[] {k+1, k+2};
-        }       
+                structure[structure.length - 1] = new int[]{k + 1, k + 2};
+        }
         int pivot = -1, letzteGleichungBlock = 0;
         {
             for (int i = 0; i < structure.length; i++) {
-                { 
+                {
                     /*
                      * In diesem Bereich wird für die skalierte Spalten-
-                     * Pivot-Suche für jeden in die Elimination erstmals 
+                     * Pivot-Suche für jeden in die Elimination erstmals
                      * eintretenden Block jeweils für alle Zeilen die Summe
                      * der Beträge ihrer Einträge berechnet.
                      */
@@ -164,16 +173,16 @@ public class FieldBlockDecomposition {
                         Dfp tempZeilenSumme = koerper.getZero();
                         for (int m = 0; m < a[i].length; m++) {
                             tempZeilenSumme = tempZeilenSumme
-                                    .add(a[letzteGleichungBlock+ j][m].abs());
+                                    .add(a[letzteGleichungBlock + j][m].abs());
                         }
                         if (tempZeilenSumme == koerper.getZero())
                             throw new SingularMatrixException();
-                        zeilenSumme[letzteGleichungBlock+j] = tempZeilenSumme;
-                    } 
+                        zeilenSumme[letzteGleichungBlock + j] = tempZeilenSumme;
+                    }
                 }
                 /* Bezieht den nächsten Block in die Betrachtung ein. */
                 letzteGleichungBlock += structure[i][0];
-                /* 
+                /*
                  * Im aktuellen Block wird jeweils mit voller Spaltenanzahl
                  * gestartet und pro Pivotschritt eine Spalte weniger
                  * berücksichtigt. Die potentiellen Nichtnullelemente des
@@ -197,7 +206,7 @@ public class FieldBlockDecomposition {
                             Dfp maxDominanz = a[pivot][0].abs()
                                     .divide(zeilenSumme[pivot]);
                             for (int m = pivot + 1; m < letzteGleichungBlock;
-                                    m++) {
+                                 m++) {
                                 Dfp tempDominanz = a[m][0].abs()
                                         .divide(zeilenSumme[m]);
                                 if (tempDominanz.greaterThan(maxDominanz)) {
@@ -207,7 +216,7 @@ public class FieldBlockDecomposition {
                             }
                             if (indexMaxDominanz != pivot) {
                                 maxDominanz = zeilenSumme[indexMaxDominanz];
-                                zeilenSumme[indexMaxDominanz] = 
+                                zeilenSumme[indexMaxDominanz] =
                                         zeilenSumme[pivot];
                                 zeilenSumme[pivot] = maxDominanz;
                                 maxDominanz = b[indexMaxDominanz];
@@ -225,14 +234,14 @@ public class FieldBlockDecomposition {
                          * verbleibenden Elemente um eine Spalte nach links.
                          */
                         for (int restBlock = pivot + 1;
-                                restBlock<letzteGleichungBlock; restBlock++) {
+                             restBlock < letzteGleichungBlock; restBlock++) {
                             Dfp ratio = a[restBlock][0].divide(a[pivot][0]);
                             for (int m = 1; m < letzteSpalteBlock; m++) {
-                                a[restBlock][m-1] = a[restBlock][m]
+                                a[restBlock][m - 1] = a[restBlock][m]
                                         .subtract(ratio
                                                 .multiply(a[pivot][m]));
                             }
-                            a[restBlock][letzteSpalteBlock-1] = koerper
+                            a[restBlock][letzteSpalteBlock - 1] = koerper
                                     .getZero();
                             b[restBlock] = b[restBlock]
                                     .subtract(ratio.multiply(b[pivot]));
@@ -240,7 +249,7 @@ public class FieldBlockDecomposition {
                         letzteSpalteBlock--;
                     } else if (a[pivot][0].isZero())
                         throw new SingularMatrixException();
-                }    
+                }
             }
         }
         /* Initialisierung des Lösungsvektors. */
@@ -253,10 +262,10 @@ public class FieldBlockDecomposition {
             for (int j = 0; j < structure[i][1]; j++) {
                 Dfp tempSumme = koerper.getZero();
                 for (int m = 1; m <= restBlock; m++) {
-                    tempSumme = tempSumme.add(tempX[pivot+m]
+                    tempSumme = tempSumme.add(tempX[pivot + m]
                             .multiply(a[pivot][m]));
                 }
-                tempX[pivot]=b[pivot].subtract(tempSumme)
+                tempX[pivot] = b[pivot].subtract(tempSumme)
                         .divide(a[pivot][0]);
                 restBlock++;
                 pivot--;

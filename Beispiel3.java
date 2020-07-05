@@ -23,6 +23,28 @@ public class Beispiel3 implements RealFieldUnivariateFunction<Dfp>,
     }
 
     /**
+     * Testprozedur für die Korrektheit der Implementierung
+     *
+     * @param args beliebige Argumente
+     */
+    public static void main(String[] args) {
+        final DfpField koerper = new DfpField(100);
+        final Dfp min = koerper.getOne().negate(), max = koerper.getOne();
+        final Beispiel3 u = new Beispiel3(koerper);
+        final int n = 1000;
+        Dfp maxFehler = koerper.getZero(), tempFehler;
+        for (int i = 0; i <= n; i++) {
+            Dfp x = min.add(((max.subtract(min)).divide(n)).multiply(i));
+            tempFehler = u.getAbleitung(x, 2).subtract(u.value(x)
+                    .multiply(2)).subtract(x.pow(2).multiply(4)
+                    .multiply(x.pow(2).exp()));
+            maxFehler = tempFehler.greaterThan(maxFehler) ? tempFehler :
+                    maxFehler;
+        }
+        System.out.println("Maximaler Fehler: " + maxFehler);
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -75,27 +97,5 @@ public class Beispiel3 implements RealFieldUnivariateFunction<Dfp>,
      */
     public double getAbleitung(double x, int nu) {
         return getAbleitung(koerper.newDfp(x), nu).toDouble();
-    }
-
-    /**
-     * Testprozedur für die Korrektheit der Implementierung
-     *
-     * @param args beliebige Argumente
-     */
-    public static void main(String[] args) {
-        final DfpField koerper = new DfpField(100);
-        final Dfp min = koerper.getOne().negate(), max = koerper.getOne();
-        final Beispiel3 u = new Beispiel3(koerper);
-        final int n = 1000;
-        Dfp maxFehler = koerper.getZero(), tempFehler;
-        for (int i = 0; i <= n; i++) {
-            Dfp x = min.add(((max.subtract(min)).divide(n)).multiply(i));
-            tempFehler = u.getAbleitung(x, 2).subtract(u.value(x)
-                    .multiply(2)).subtract(x.pow(2).multiply(4)
-                    .multiply(x.pow(2).exp()));
-            maxFehler = tempFehler.greaterThan(maxFehler) ? tempFehler :
-                    maxFehler;
-        }
-        System.out.println("Maximaler Fehler: " + maxFehler);
     }
 }

@@ -23,6 +23,27 @@ public class Beispiel4 implements RealFieldUnivariateFunction<Dfp>,
     }
 
     /**
+     * Testprozedur für die Korrektheit der Implementierung
+     *
+     * @param args beliebige Argumente
+     */
+    public static void main(String[] args) {
+        final DfpField koerper = new DfpField(100);
+        final Dfp min = koerper.getZero();
+        final Dfp max = koerper.getOne();
+        final int n = 10;
+        final Beispiel4 u = new Beispiel4(koerper);
+        for (int i = 0; i <= n; i++) {
+            Dfp x = min.add(max.subtract(min).multiply(i)).divide(n);
+            System.out.println("u''(" + x + ") - 4 * u(" + x +
+                    ") - 4 * cosh(1) = " + (u.getAbleitung(x, 2)
+                    .subtract(u.value(x).multiply(4))
+                    .subtract((koerper.getOne()).cosh()
+                            .multiply(4))));
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -64,26 +85,5 @@ public class Beispiel4 implements RealFieldUnivariateFunction<Dfp>,
      */
     public double getAbleitung(double x, int nu) {
         return getAbleitung(koerper.newDfp(x), nu).toDouble();
-    }
-
-    /**
-     * Testprozedur für die Korrektheit der Implementierung
-     *
-     * @param args beliebige Argumente
-     */
-    public static void main(String[] args) {
-        final DfpField koerper = new DfpField(100);
-        final Dfp min = koerper.getZero();
-        final Dfp max = koerper.getOne();
-        final int n = 10;
-        final Beispiel4 u = new Beispiel4(koerper);
-        for (int i = 0; i <= n; i++) {
-            Dfp x = min.add(max.subtract(min).multiply(i)).divide(n);
-            System.out.println("u''(" + x + ") - 4 * u(" + x +
-                    ") - 4 * cosh(1) = " + (u.getAbleitung(x, 2)
-                    .subtract(u.value(x).multiply(4))
-                    .subtract((koerper.getOne()).cosh()
-                            .multiply(4))));
-        }
     }
 }

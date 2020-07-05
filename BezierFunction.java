@@ -13,10 +13,6 @@ import org.apache.commons.math3.util.MathUtils;
 public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
 
     /**
-     * Der Körper auf dem die Bézierdarstellung implementiert wird.
-     */
-    DfpField koerper;
-    /**
      * The bezierpoints of the polynomial, ordered by degree -- i.e.,
      * $\verb!b[0]!$ is $b_0$ and $\verb!b[n]!$ is the coefficient of ${}_s^t B_n^n$ where $n$ is the
      * degree of all Bernstein polynomials the function is composed of.
@@ -27,6 +23,10 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
      * definiert sind und häufig auftretende Rechenschritte.
      */
     private final Dfp tMinusS, tMinusSSqr, SDivTMinusS;
+    /**
+     * Der Körper auf dem die Bézierdarstellung implementiert wird.
+     */
+    DfpField koerper;
 
     /**
      * Construct a polynomial with the given bezierpoints. The first
@@ -55,6 +55,16 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
         }
         this.b = new Dfp[n];
         System.arraycopy(b, 0, this.b, 0, n);
+    }
+
+    /**
+     * Berechnet den häufig auftretenden Faktor $\mu(x) := (x-s)/(t-s)$.
+     *
+     * @param x Wert, für den $\mu(x)$ berechnet werden soll.
+     * @return $\mu(x)$
+     */
+    public static Dfp mu(Dfp x, Dfp s, Dfp t) {
+        return (x.subtract(s)).divide(t.subtract(s));
     }
 
     /**
@@ -148,15 +158,5 @@ public class BezierFunction implements RealFieldUnivariateFunction<Dfp> {
      */
     public Dfp[] getBezierpunkte() {
         return b.clone();
-    }
-
-    /**
-     * Berechnet den häufig auftretenden Faktor $\mu(x) := (x-s)/(t-s)$.
-     *
-     * @param x Wert, für den $\mu(x)$ berechnet werden soll.
-     * @return $\mu(x)$
-     */
-    public static Dfp mu(Dfp x, Dfp s, Dfp t) {
-        return (x.subtract(s)).divide(t.subtract(s));
     }
 }

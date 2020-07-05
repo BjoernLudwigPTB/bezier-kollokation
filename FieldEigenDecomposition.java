@@ -15,27 +15,35 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
  * Springer-Verlag, New-York.
  */
 public class FieldEigenDecomposition {
-    /** Der Körper über dem die Zerlegung berechnet werden soll. */
-    private final DfpField koerper;
-    /** Maximum number of iterations accepted. */
+    /**
+     * Maximum number of iterations accepted.
+     */
     private final static byte maxIter = 30;
-    /** The eigenvalues. */
+    /**
+     * Der Körper über dem die Zerlegung berechnet werden soll.
+     */
+    private final DfpField koerper;
+    /**
+     * The eigenvalues.
+     */
     private final Dfp[] eigenvalues;
 
     /**
      * Calculates the eigen decomposition of the symmetric tridiagonal
      * matrix.
+     *
      * @param neben of the tridiagonal form.
      * @throws MaxCountExceededException if the algorithm fails to converge.
      * @since 3.1
-     */ 
+     */
     public FieldEigenDecomposition(final Dfp[] neben) {
-            this.koerper = neben[0].getField();
-            eigenvalues = findEigenValues(neben);
-        }
-    
+        this.koerper = neben[0].getField();
+        eigenvalues = findEigenValues(neben);
+    }
+
     /**
      * Find eigenvalues ($\textsc{Dubrulle}$ et al., 1971)
+     *
      * @param neben Secondary diagonal of the tridiagonal matrix.
      */
     private Dfp[] findEigenValues(Dfp[] neben) {
@@ -80,7 +88,7 @@ public class FieldEigenDecomposition {
                     for (i = m - 1; i >= j; i--) {
                         Dfp p = s.multiply(neben[i]);
                         Dfp h = c.multiply(neben[i]);
-                        if ((p).abs().greaterThan(q.abs()) || 
+                        if ((p).abs().greaterThan(q.abs()) ||
                                 (p).abs().equals(q.abs())) {
                             c = q.divide(p);
                             t = (c.pow(2).add(koerper.getOne())).sqrt();
@@ -136,6 +144,7 @@ public class FieldEigenDecomposition {
 
     /**
      * Gets a copy of the eigenvalues of the original matrix.
+     *
      * @return a copy of the eigenvalues of the original matrix.
      */
     public Dfp[] getEigenvalues() {
