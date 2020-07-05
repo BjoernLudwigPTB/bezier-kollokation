@@ -15,14 +15,14 @@ public class ShishkinGitter implements Gitter<Dfp>{
      * @param l die Anzahl der Gitterintervalle.
      * @param s der erste Gitterknoten $\xi_0^S$.
      * @param t der letzte Gitterknoten $\xi_l^S$.
-     * @param q ein Gitterparamter beschreibt größenordnungsmäßig den
+     * @param q ein Gitterparameter beschreibt größenordnungsmäßig den
      * Anteil der Gitterknoten, welcher in der Grenzschicht liegt.
-     * @param sigma ein Gitterparamter beschreibt die Auflösung der
+     * @param sigma ein Gitterparameter beschreibt die Auflösung der
      * Grenzschicht und wird typischerweise nahe der formalen
      * Konvergenzordnung der verwendeten Methode gewählt.
-     * @param beta gegeben durch die Koeffzienten der Differentialgleichung
+     * @param beta gegeben durch die Koeffizienten der Differentialgleichung
      * $-\varepsilon u'' - bu' + cu = f$, für die das Gitter erzeugt wird, durch $b \geq \beta > 0$.
-     * @param epsilon singulärer Störungsparamter für welchen das Gitter
+     * @param epsilon singulärer Störungsparameter für welchen das Gitter
      * erzeugt werden soll.
      */
     public ShishkinGitter(int l, Dfp s, Dfp t, Dfp q, Dfp sigma, Dfp beta, 
@@ -57,19 +57,19 @@ public class ShishkinGitter implements Gitter<Dfp>{
      * @param l die Anzahl der Teilintervalle.
      * @param s der erste Gitterknoten $\xi_0^S$.
      * @param t der letzte Gitterknoten $\xi_l^S$.
-     * @param q_0 ein Gitterparamter beschreibt größenordnungsmäßig den
+     * @param q_0 ein Gitterparameter beschreibt größenordnungsmäßig den
      * Anteil der Gitterknoten, welcher in der Grenzschicht bei $x=s$ liegt.
-     * @param q_1 ein Gitterparamter beschreibt größenordnungsmäßig den
+     * @param q_1 ein Gitterparameter beschreibt größenordnungsmäßig den
      * Anteil der Gitterknoten, welcher in der Grenzschicht bei $x=t$ liegt.
-     * @param sigma_0 ein Gitterparamter beschreibt die Auflösung der
+     * @param sigma_0 ein Gitterparameter beschreibt die Auflösung der
      * Grenzschicht bei $x=s$ und wird typischerweise nahe der formalen
      * Konvergenzordnung der verwendeten Methode gewählt.
-     * @param sigma_1 ein Gitterparamter beschreibt die Auflösung der
+     * @param sigma_1 ein Gitterparameter beschreibt die Auflösung der
      * Grenzschicht bei $x=t$ und wird typischerweise nahe der formalen
      * Konvergenzordnung der verwendeten Methode gewählt.
-     * @param gamma gegeben durch die Koeffzienten der Differentialgleichung
+     * @param gamma gegeben durch die Koeffizienten der Differentialgleichung
      * $-\varepsilon u'' + cu = f$, für die das Gitter erzeugt wird, durch $c \geq \gamma^2, \gamma > 0$.
-     * @param epsilon singulärer Störungsparamter für welchen das Gitter
+     * @param epsilon singulärer Störungsparameter für welchen das Gitter
      * erzeugt werden soll.
      */
     public ShishkinGitter(int l, Dfp s, Dfp t, Dfp q_0, Dfp q_1, Dfp sigma_0,
