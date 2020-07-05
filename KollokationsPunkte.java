@@ -2,8 +2,8 @@ import org.apache.commons.math3.dfp.Dfp;
 import org.apache.commons.math3.dfp.DfpField;
 
 /**
- * Erzeugt ein Feld, das für einen übergebenen Paramter $k$ 
- * äquidistante Punkte im Intervall $(-1, 1)$ zurückgibt.
+ * Erzeugt ein Feld, das für einen übergebenen Parameter $k$
+ * äquidistante Punkte im Intervall $(-1, 1)$ zurück gibt.
  */
 public class KollokationsPunkte {
     
@@ -14,7 +14,7 @@ public class KollokationsPunkte {
 
     /**
      * Erzeugt eine Instanz für ein $k > 0$.
-     * @param k
+     * @param k Anzahl der Kollokationspunkte.
      */
     public KollokationsPunkte(int k, DfpField koerper) {
         this.koerper = koerper;
@@ -32,7 +32,7 @@ public class KollokationsPunkte {
         Dfp temp = koerper.getOne().add(k).divide(koerper.getTwo());
         for (int j = 1; j <= k; j++) {
             tempRho[j-1] = temp.reciprocal().multiply(j).subtract(1);
-        };
+        }
         return tempRho;
     }
 
