@@ -12,7 +12,7 @@ public class BezierKollokation {
     /** Die Genauigkeit, mit der gerechnet werden soll. */
     private static final int genauigkeit = 64; 
     /** Der verwendete Körper in dem gerechnet wird. */
-    private DfpField koerper = new DfpField(genauigkeit);
+    private final DfpField koerper = new DfpField(genauigkeit);
     /** Die Anzahl der Kollokationspunkte je Gitterintervall. */
     private final int k;
     /** Die Kollokationspunkte $\tau_1, ..., \tau_{l \cdot k}$. */
@@ -25,7 +25,7 @@ public class BezierKollokation {
      */
     private final Dfp[][] mu;
     /** Die Näherungslösung $g$ von $-\varepsilon y'' - p y' + q y = f$. */
-    private BezierSplineFunction g;
+    private final BezierSplineFunction g;
     /** Auszug aus den möglichen Farbnamen in Maple. */
     enum Linienfarbe {
         Brown, Crimson, Chocolate, Orange, SkyBlue, Magenta, Gold
@@ -244,7 +244,8 @@ public class BezierKollokation {
                  * Berechnung des Summanden bezüglich $b_{i0}$ der $j$-ten 
                  * Kollokationsbedingung.
                  */
-                tempA[i*(k+2)+j][0] = getMu(i, j, k-1, true)
+                Dfp[] dfps = tempA[i * (k + 2) + j];
+                dfps[0] = getMu(i, j, k-1, true)
                         .multiply(
                                 pJ.multiply(kPlusDivDeltaXi)
                                 .multiply(
@@ -259,7 +260,7 @@ public class BezierKollokation {
                  * Berechnung des Summanden bezüglich $b_{i1}$ der $j$-ten 
                  * Kollokationsbedingung.
                  */
-                tempA[i*(k+2)+j][1] = getMu(i, j, k-2, true)
+                dfps[1] = getMu(i, j, k-2, true)
                         .multiply(k+1).multiply(
                                 epsilon.multiply(k)
                                 .divide(deltaXiSqr).multiply(
@@ -288,7 +289,7 @@ public class BezierKollokation {
                  * Kollokationsbedingung.
                  */
                 for (int kappa = 2; kappa < k ; kappa++) {
-                    tempA[i * (k + 2) + j][kappa] =
+                    dfps[kappa] =
                             epsilonKPlusKDivDeltaXiSqr
                             .multiply(
                                     koerper.getTwo().multiply(
@@ -322,7 +323,7 @@ public class BezierKollokation {
                  * Berechnung des Summanden bezüglich $b_{ik}$ der $j$-ten 
                  * Kollokationsbedingung.
                  */
-                tempA[i*(k+2)+j][k] = getMu(i, j, k-2, false)
+                dfps[k] = getMu(i, j, k-2, false)
                         .multiply(k+1).multiply(
                                 epsilon.multiply(k)
                                 .divide(deltaXiSqr)
@@ -348,7 +349,7 @@ public class BezierKollokation {
                  * Berechnung des Summanden bezüglich $b_{i,k+1}$ der $j$-ten 
                  * Kollokationsbedingung.
                  */
-                tempA[i*(k+2)+j][k+1] = getMu(i,j,k-1, false)
+                dfps[k+1] = getMu(i,j,k-1, false)
                         .multiply(
                                 getMu(i, j, 1, false).multiply(
                                         qJ
@@ -361,7 +362,7 @@ public class BezierKollokation {
                                 )
                                 .subtract(epsilonKPlusKDivDeltaXiSqr)
                                 );
-                if (k == 1 && l >1) tempA[i*(k+2)+j][k+2] = koerper.getZero();
+                if (k == 1 && l >1) dfps[k+2] = koerper.getZero();
             }
         }
         return tempA;
@@ -457,7 +458,7 @@ public class BezierKollokation {
      * @return eine Kopie von $\verb!Dfp[] xi!$
      */
     public Dfp[] getXi() {
-        Dfp out[] = new Dfp[xi.length];
+        Dfp[] out = new Dfp[xi.length];
         System.arraycopy(xi, 0, out, 0, xi.length);
         return out;
     }
@@ -476,7 +477,7 @@ public class BezierKollokation {
      * @return die Anzahl der Nachkommastellen.
      */
     public static int getGenauigkeit () {
-        return new Integer(genauigkeit);
+        return genauigkeit;
     }
 
     /**
@@ -503,7 +504,7 @@ public class BezierKollokation {
      * @return Ausgabe gemäß $\verb!mode!$.
      */
     public static String berechneKlassisch (int k, int l, int mode) {
-        String ausgabe = "k = " + k + ", l = " + l + "\n";
+        StringBuilder ausgabe = new StringBuilder("k = " + k + ", l = " + l + "\n");
         /* Der Körper auf dem die Funktionen definiert sind. */
         final DfpField koerper = new DfpField(genauigkeit);
         /* Der linke Rand $s$ des Kollokationsintervalls $[s, t]$. */
@@ -523,15 +524,15 @@ public class BezierKollokation {
                         .negate()});
         /* Die Funktion $f$ in $-\varepsilon y'' - p y' + q y = f$. */
         final RealFieldUnivariateFunction<Dfp> f = new
-                RealFieldUnivariateFunction<Dfp>() {
+                RealFieldUnivariateFunction<>() {
 
-            private final Dfp value = (koerper.getE().add(koerper.getE()
-                    .reciprocal())).multiply(koerper.getTwo());
-            
-            public Dfp value(Dfp x) {
-                return value;
-            }
-        };
+                    private final Dfp value = (koerper.getE().add(koerper.getE()
+                            .reciprocal())).multiply(koerper.getTwo());
+
+                    public Dfp value(Dfp x) {
+                        return value;
+                    }
+                };
         BezierKollokation bkol = new BezierKollokation(k, l, s, t, eta1,
                 eta2, p, q, f);
         BezierSplineFunction g = bkol.getG();
@@ -548,60 +549,56 @@ public class BezierKollokation {
                 xD = sD + i * (t.toDouble() - sD)/n;
                 x = koerper.newDfp(xD);
                 for (int j : new int[] {0, 1, 2}) {
-                    ausgabe += "u^(" + j + ")(" + x + ") - g^(" + j + ")(" +
-                            x + ") = " + (u.getAbleitung(xD, j) -
-                                    g.derivative(x, j).toDouble());
-                    if (j < 2) ausgabe += "\n";
+                    ausgabe.append("u^(").append(j).append(")(").append(x).append(") - g^(").append(j).append(")(").append(x).append(") = ").append(u.getAbleitung(xD, j) -
+                            g.derivative(x, j).toDouble());
+                    if (j < 2) ausgabe.append("\n");
                 }
-                if (i < n) ausgabe += "\n";
+                if (i < n) ausgabe.append("\n");
             }
             break;
         case 2:
             n = 200;
-            String werte = "", stellen = "";
+            StringBuilder werte = new StringBuilder();
+            StringBuilder stellen = new StringBuilder();
             tMinusSDivN = (t.subtract(s)).divide(n);
             for (int i = 0; i <= n; i++) {
                 x = s.add(tMinusSDivN.multiply(i));
-                werte += g.value(x).toDouble();
-                stellen += x.toDouble();
+                werte.append(g.value(x).toDouble());
+                stellen.append(x.toDouble());
                 if (i != n) {
-                    werte += ",";
-                    stellen += ",";
+                    werte.append(",");
+                    stellen.append(",");
                 }
             }
-            ausgabe = "u" + k + l + ":=pointplot([" + stellen + " ], ["+werte+
-                    "], legend = \"u" + k + l + "\", color = \"" + 
-                    Linienfarbe.values()[(l+k-1)%Linienfarbe.values().length]
-                            + "\", connect = true):";
+            ausgabe = new StringBuilder("u" + k + l + ":=pointplot([" + stellen + " ], [" + werte +
+                    "], legend = \"u" + k + l + "\", color = \"" +
+                    Linienfarbe.values()[(l + k - 1) % Linienfarbe.values().length]
+                    + "\", connect = true):");
             break;
         case 3:
-            ausgabe += "g(" + s + ") = " + g.value(s) + "\n";
+            ausgabe.append("g(").append(s).append(") = ").append(g.value(s)).append("\n");
             for (int j = 1; j <= l * k; j++) {
-                ausgabe += "tau" + j + " = " + bkol.getTau(j) + 
-                        ": g'' + p * g' + q * g - f = " + 
-                        (g.derivative(bkol.getTau(j), 2).subtract 
-                                (p.value(bkol.getTau(j)).multiply 
-                                (g.derivative(bkol.getTau(j), 1))).add 
-                                (q.value(bkol.getTau(j)).multiply
-                                (g.derivative(bkol.getTau(j), 0))).subtract 
-                                (f.value(bkol.getTau(j))))
-                        + "\n";
+                ausgabe.append("tau").append(j).append(" = ").append(bkol.getTau(j)).append(": g'' + p * g' + q * g - f = ").append(g.derivative(bkol.getTau(j), 2).subtract
+                        (p.value(bkol.getTau(j)).multiply
+                                (g.derivative(bkol.getTau(j), 1))).add
+                        (q.value(bkol.getTau(j)).multiply
+                                (g.derivative(bkol.getTau(j), 0))).subtract
+                        (f.value(bkol.getTau(j)))).append("\n");
             }
-            ausgabe += "g(" + t + ")= " + g.value(t);
+            ausgabe.append("g(").append(t).append(")= ").append(g.value(t));
             break;
         case 4:
             for (int j = 1; j <= l * k; j++) {
                 for (int i = 0; i <= k+1; i++) {
-                    ausgabe += "mu_" + j + "^" + i + " = " + 
-                bkol.getMu(j/l, j%l, i, false) + "\n";
+                    ausgabe.append("mu_").append(j).append("^").append(i).append(" = ").append(bkol.getMu(j / l, j % l, i, false)).append("\n");
                 }
             }
             break;
         case 5:
             for (int i = 0; i < l; i++) {
                 for (int j = 1; j <= k; j++) {
-                    ausgabe += "tau_" + (i * k + j) + " = " + bkol.getTau(i,
-                            j) + "\n";
+                    ausgabe.append("tau_").append(i * k + j).append(" = ").append(bkol.getTau(i,
+                            j)).append("\n");
                 }
             }
             break;
@@ -613,30 +610,28 @@ public class BezierKollokation {
                         u.value(bkol.getTau(j))).abs();
                 if (temp.greaterThan(max)) max = temp;
             }
-            ausgabe += "E_\\Delta^" + k + (Integer.toString(k).length() == 1 ?
-                    " " : "") + " = " + max + "\n";
+            ausgabe.append("E_\\Delta^").append(k).append(Integer.toString(k).length() == 1 ?
+                    " " : "").append(" = ").append(max).append("\n");
             max = koerper.getZero();
             for (int i = 0; i <= l; i++) {
                 Dfp temp = g.value(bkol.getXi(i)).subtract(
                         u.value(bkol.getXi(i))).abs();
                 if (temp.greaterThan(max)) max = temp;
             }
-            ausgabe += "E_\\xi^" + l;
-            for (int m = -4; m < Integer.toString(k).length() - Integer
+            ausgabe.append("E_\\xi^").append(l);
+            ausgabe.append(" ".repeat(Math.max(0, Integer.toString(k).length() - Integer
                     .toString(l).length() - (Integer.toString(k)
-                            .length() == 1 ? 0 : 1); m++) {
-                ausgabe += " ";
-                }
-            ausgabe += " = " + max + "\n";
+                    .length() == 1 ? 0 : 1) + 4)));
+            ausgabe.append(" = ").append(max).append("\n");
             break;
         case 7:
             Dfp[] tempXi = bkol.getXi();
             for (int j = 0; j <= l; j++) {
-                ausgabe += "xi_" + (j + 1) + " = " + tempXi[j] + "\n";
+                ausgabe.append("xi_").append(j + 1).append(" = ").append(tempXi[j]).append("\n");
             }
             break;
         case 8:
-            ausgabe = "";
+            ausgabe = new StringBuilder();
             int[] ls = new int[] {1, 2, 3, 4, 5, 6, 7, 8, 16, 32};
             /* 
              * max enthält die Fehler und experimentellen Konvergenzordnungen,
@@ -671,21 +666,21 @@ public class BezierKollokation {
                             konvergenz[i][0] = temp;
                         }
                     }
-                    System.out.print("l = "); 
-                    for (int m = 0; m < 2 - Integer.toString(ls[i]).length();
-                            m++) {
+                    System.out.print("l = ");
+                    int i1 = 2 - Integer.toString(ls[i]).length();
+                    for (int m = 0; m < i1;
+                         m++) {
                         System.out.print(" ");
-                    };
+                    }
                     System.out.println(ls[i] + ": E_\\infty = " + 
                     konvergenz[i][0]);
                     if (i > 0) {
                         konvergenz[i][1] = konvergenz[i][0].divide(
                                 konvergenz[i-1][0]).log().divide(
                                 FastMath.log((double)ls[i-1] / ls[i]));
-                        for (int m = 0; m < 2 - Integer.toString(ls[i])
-                                .length(); m++) {
+                        for (int m = 0; m < i1; m++) {
                             System.out.print(" ");
-                        };
+                        }
                         System.out.println("       \\alpha_" + ls[i] + " = " +
                                 konvergenz[i][1]);
                     }
@@ -702,11 +697,10 @@ public class BezierKollokation {
                         konvergenz[i][3] = konvergenz[i][2].divide(
                                 konvergenz[i-1][2]).log().divide(FastMath
                                         .log((double)ls[i-1] / ls[i]));
-                        for (int m = 0; m < 2 - Integer.toString(ls[i])
-                                .length();
+                        for (int m = 0; m < i1;
                                 m++) {
                             System.out.print(" ");
-                        };
+                        }
                         System.out.println("        \\beta_" + ls[i] + " = " + 
                                 konvergenz[i][3]);
                     }
@@ -714,8 +708,10 @@ public class BezierKollokation {
                 }
             }
             break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + mode);
         }
-        return ausgabe;
+        return ausgabe.toString();
     }
     
     /**
