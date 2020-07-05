@@ -57,26 +57,14 @@ public class SingulaerGestoerterFall extends BezierKollokation {
         final RealFieldPolynomialFunction p = new RealFieldPolynomialFunction (
                 new Dfp[] {epsilon.getZero()});
         /* Die Koeffizientenfunktion $q$ in $-\varepsilon^2 y'' - p y' + q y = f$. */
-        final RealFieldUnivariateFunction<Dfp> q = new
-                RealFieldUnivariateFunction<Dfp>() {
-            
-            public Dfp value(Dfp x) {
-                return x.cos().add(x.multiply(x)).add(x.getOne());
-            }
-        };
+        final RealFieldUnivariateFunction<Dfp> q = x -> x.cos().add(x.multiply(x)).add(x.getOne());
         /* Die Funktion $f$ in $-\varepsilon^2 y'' - p y' + q y = f$. */
-        final RealFieldUnivariateFunction<Dfp> f = new
-                RealFieldUnivariateFunction<Dfp>() {
-            public Dfp value(Dfp x) {
-                return x.pow(9d/2).add(x.sin());
-            }
-        };
+        final RealFieldUnivariateFunction<Dfp> f = x -> x.pow(9d/2).add(x.sin());
         /* Häufig benötigte Ausdrücke. */
         Dfp qu_0 = epsilon.getTwo().pow(2).reciprocal(),
-                qu_1 = qu_0,
                 sigma_0 = epsilon.getTwo().multiply(epsilon.getTwo()),
                 sigma_1 = epsilon.getTwo().multiply(epsilon.getTwo());
-        String ausgabe = "k = " + k + ", ";
+        StringBuilder ausgabe = new StringBuilder("k = " + k + ", ");
         switch (mode) {
         case 1:
             /*
@@ -87,86 +75,79 @@ public class SingulaerGestoerterFall extends BezierKollokation {
             for (int i = 0; i < l.length; i++) {
                 max[i] = epsilon.getZero();
             }
-            ausgabe += "epsilon = 10^" + ((int) (epsilon.log().toDouble()
-                    /Math.log(10)))+ ": " + "\n";
+            ausgabe.append("epsilon = 10^").append((int) (epsilon.log().toDouble()
+                    / Math.log(10))).append(": ").append("\n");
             for (int i = 0; i < l.length; i++) {
                 Gitter<Dfp> originalGitter = new ShishkinGitter(l[i],s,t,qu_0,
-                        qu_1, sigma_0, sigma_1, epsilon.getTwo(), epsilon);
+                        qu_0, sigma_0, sigma_1, epsilon.getTwo(), epsilon);
                 max[i] = berechneAbweichung(k, originalGitter,
                         epsilon.pow(2), eta1, eta2, p, q, f);
-                ausgabe += "l = "; 
-                for (int m = 0; m < 3 - Integer.toString(l[i]).length(); m++){
-                    ausgabe += " "; 
-                };
-                ausgabe += l[i] + ": E_\\xi = " + max[i] + "\n";
+                ausgabe.append("l = ");
+                ausgabe.append(" ".repeat(Math.max(0, 3 - Integer.toString(l[i]).length())));
+                ausgabe.append(l[i]).append(": E_\\xi = ").append(max[i]).append("\n");
                 /*
                  * Berechnet die experimentelle Konvergenzordnung wie in der
                  * Ausarbeitung angegeben.
                  */
                 if (i > 0) {
-                        for (int m = 0; m < 2-Integer.toString(l[i]).length();
-                                m++) {
-                            ausgabe += " ";
-                        }
-                        ausgabe += "   \\alpha_" + l[i] + " = " +max[i].divide
-                                (max[i-1]).log().divide(Math.log(Math.log(l[i]
-                                        ) / ( 2*Math.log(l[i-1])))) + "\n";
+                    ausgabe.append(" ".repeat(Math.max(0, 2 - Integer.toString(l[i]).length())));
+                        ausgabe.append("   \\alpha_").append(l[i]).append(" = ").append(max[i].divide
+                                (max[i - 1]).log().divide(Math.log(Math.log(l[i]
+                        ) / (2 * Math.log(l[i - 1]))))).append("\n");
                 }
-                ausgabe += "\n"; 
+                ausgabe.append("\n");
             }            
             break;
         case 2:
             for (int i = 0; i < l.length; i++) {
                 Gitter<Dfp> gitter = new ShishkinGitter(l[i], s, t, qu_0,
-                        qu_1, sigma_0, sigma_1, epsilon.getTwo(), epsilon);
+                        qu_0, sigma_0, sigma_1, epsilon.getTwo(), epsilon);
                 final SingulaerGestoerterFall kollokation = new 
                         SingulaerGestoerterFall(k, gitter, epsilon.pow(2), 
                                 eta1, eta2, p, q, f);
                 final BezierSplineFunction g = kollokation.getG();
-                String werte = "", stellen = "";
+                StringBuilder werte = new StringBuilder();
+                StringBuilder stellen = new StringBuilder();
                 for (int j = 0; j < l[i]; j++) {
-                    werte += g.value(kollokation.getXi(j)).toDouble();
-                    stellen += kollokation.getXi(j).toDouble();
-                    werte += ",";
-                    stellen += ",";
+                    werte.append(g.value(kollokation.getXi(j)).toDouble());
+                    stellen.append(kollokation.getXi(j).toDouble());
+                    werte.append(",");
+                    stellen.append(",");
                 }
-                werte += g.value(kollokation.getXi(l[i])).toDouble();
-                stellen += kollokation.getXi(l[i]).toDouble();
-                ausgabe = "u" + k + "_" + l[i] + "_" + Math.abs((int) (epsilon
+                werte.append(g.value(kollokation.getXi(l[i])).toDouble());
+                stellen.append(kollokation.getXi(l[i]).toDouble());
+                ausgabe = new StringBuilder("u" + k + "_" + l[i] + "_" + Math.abs((int) (epsilon
                         .log().toDouble() / Math.log(10))) + ":=pointplot([" +
-                        stellen + " ], [" + werte + "], legend = \"u" + k + 
+                        stellen + " ], [" + werte + "], legend = \"u" + k +
                         "_" + l[i] + "_" + Math.abs((int) (epsilon.log()
-                                .toDouble() / Math.log(10))) +"\", color = \""
-                        +Linienfarbe.values()[i%(Linienfarbe.values().length)]
-                                + "\", connect = true):";
+                        .toDouble() / Math.log(10))) + "\", color = \""
+                        + Linienfarbe.values()[i % (Linienfarbe.values().length)]
+                        + "\", connect = true):");
             }
             break;
         case 3:
-            for (int i = 0; i < l.length; i++) {
-                Gitter<Dfp> gitter = new ShishkinGitter(l[i], s, t, qu_0,
-                        qu_1, sigma_0, sigma_1, epsilon.getTwo(), epsilon);               
-                        final SingulaerGestoerterFall kollokation = new 
-                        SingulaerGestoerterFall(k, gitter, epsilon.pow(2), 
-                                eta1, eta2, p, q, f);
+            for (int value : l) {
+                Gitter<Dfp> gitter = new ShishkinGitter(value, s, t, qu_0,
+                        qu_0, sigma_0, sigma_1, epsilon.getTwo(), epsilon);
+                final SingulaerGestoerterFall kollokation = new
+                        SingulaerGestoerterFall(k, gitter, epsilon.pow(2),
+                        eta1, eta2, p, q, f);
                 final BezierSplineFunction g = kollokation.getG();
-                ausgabe += "g(" + s + ") = " + g.value(s) + "\n";
-                for (int j = 1; j <= l[i] * k; j++) {
+                ausgabe.append("g(").append(s).append(") = ").append(g.value(s)).append("\n");
+                for (int j = 1; j <= value * k; j++) {
                     Dfp temp = kollokation.getTau(j);
-                    ausgabe += "tau" + j + " = " + temp.toDouble() + 
-                            ": -epsilon g'' - p * g' + q * g - f = " + 
-                            (epsilon.pow(2).negate().multiply(
-                                    g.derivative(temp, 2)).subtract(p
-                                            .value(temp)
-                                            .multiply(g.derivative(temp, 1)))
-                                    .add(q.value(temp).multiply
-                                            (g.derivative(temp, 0)))
-                                    .subtract(f.value(temp)))
-                            + "\n";
+                    ausgabe.append("tau").append(j).append(" = ").append(temp.toDouble()).append(": -epsilon g'' - p * g' + q * g - f = ").append(epsilon.pow(2).negate().multiply(
+                            g.derivative(temp, 2)).subtract(p
+                            .value(temp)
+                            .multiply(g.derivative(temp, 1)))
+                            .add(q.value(temp).multiply
+                                    (g.derivative(temp, 0)))
+                            .subtract(f.value(temp))).append("\n");
                 }
-                ausgabe += "g(" + t + ")= " + g.value(t);
+                ausgabe.append("g(").append(t).append(")= ").append(g.value(t));
             }
         }
-        return ausgabe;
+        return ausgabe.toString();
     }
     
     /**
@@ -174,7 +155,6 @@ public class SingulaerGestoerterFall extends BezierKollokation {
      * feineren Gitter und berechnet die maximale Abweichung der
      * Funktionswerte an den Gitterknoten des Originals.
      * @param k Anzahl der Kollokationspunkte je Gitterintervall.
-     * @param xi das Gitter auf dem die Originalnäherung berechnet wurde.
      * @param epsilon singulärer Störungsparameter.
      * @param eta1 linker Randwert.
      * @param eta2 rechter Randwert.
@@ -243,16 +223,11 @@ public class SingulaerGestoerterFall extends BezierKollokation {
         final RealFieldPolynomialFunction q = new RealFieldPolynomialFunction(
                 new Dfp[] {epsilon.getTwo()});
         /* Die Funktion $f$ in $-\varepsilon y'' - p y' + q y = f$. */
-        final RealFieldUnivariateFunction<Dfp> f = new
-                RealFieldUnivariateFunction<Dfp>() {
-            public Dfp value(Dfp x) {
-                return x.subtract(epsilon.getOne()).exp();
-            }
-        };
+        final RealFieldUnivariateFunction<Dfp> f = x -> x.subtract(epsilon.getOne()).exp();
         /* Häufig benötigter Ausdruck. */
         Dfp qu = epsilon.getTwo().reciprocal(), sigma = epsilon.getOne();
         Dfp[] max;
-        String ausgabe = "k = " + k + ", ";
+        StringBuilder ausgabe = new StringBuilder("k = " + k + ", ");
         switch (mode) {
         case 11:
             /*
@@ -263,29 +238,23 @@ public class SingulaerGestoerterFall extends BezierKollokation {
             for (int i = 0; i < l.length; i++) {
                 max[i] = epsilon.getZero();
             }
-            ausgabe += "epsilon = 10^" + ((int) (Math.log(epsilon.toDouble())
-                    /Math.log(10)))+ ": " + "\n";
+            ausgabe.append("epsilon = 10^").append((int) (Math.log(epsilon.toDouble())
+                    / Math.log(10))).append(": ").append("\n");
             for (int i = 0; i < l.length; i++) {
                 Gitter<Dfp> originalGitter = new ShishkinGitter(l[i], s, t,
                         qu, sigma, epsilon, epsilon);
                 max[i] = berechneAbweichung(k, originalGitter, epsilon, 
                         eta1, eta2, p, q, f);
-                ausgabe += "l = "; 
-                for (int m = 0; m < 3 - Integer.toString(l[i]).length(); m++){
-                    ausgabe += " "; 
-                };
-                ausgabe += l[i] + ": E_\\xi = " + max[i] + "\n";
+                ausgabe.append("l = ");
+                ausgabe.append(" ".repeat(Math.max(0, 3 - Integer.toString(l[i]).length())));
+                ausgabe.append(l[i]).append(": E_\\xi = ").append(max[i]).append("\n");
                 if (i > 0) {
-                        for (int m = 0; m < 2-Integer.toString(l[i]).length();
-                                m++) {
-                            ausgabe += " ";
-                        };
-                        ausgabe += "    \\alpha_" + l[i] + " = " + 
-                                max[i].divide(max[i-1]).log().divide(
-                                        Math.log(Math.log(l[i])/(2*
-                                                Math.log(l[i-1])))) +"\n";
+                    ausgabe.append(" ".repeat(Math.max(0, 2 - Integer.toString(l[i]).length())));
+                    ausgabe.append("    \\alpha_").append(l[i]).append(" = ").append(max[i].divide(max[i - 1]).log().divide(
+                                Math.log(Math.log(l[i]) / (2 *
+                                        Math.log(l[i - 1]))))).append("\n");
                 }
-                ausgabe += "\n"; 
+                ausgabe.append("\n");
             }            
             break;
         case 12:
@@ -297,28 +266,22 @@ public class SingulaerGestoerterFall extends BezierKollokation {
             for (int i = 0; i < l.length; i++) {
                 max[i] = epsilon.getZero();
             }
-            ausgabe += "epsilon = 10^" + ((int) (Math.log(epsilon.toDouble())
-                    /Math.log(10)))+ ": " + "\n";
+            ausgabe.append("epsilon = 10^").append((int) (Math.log(epsilon.toDouble())
+                    / Math.log(10))).append(": ").append("\n");
             for (int i = 0; i < l.length; i++) {
                 Gitter<Dfp> originalGitter = new BakhvalovGitter(l[i], s, t,
                         qu, sigma, epsilon, epsilon);
                 max[i] = berechneAbweichung(k, originalGitter, epsilon, 
                         eta1, eta2, p, q, f);
-                ausgabe += "l = "; 
-                for (int m = 0; m < 3 - Integer.toString(l[i]).length(); m++){
-                    ausgabe += " "; 
-                };
-                ausgabe += l[i] + ": E_\\xi = " + max[i] + "\n";
+                ausgabe.append("l = ");
+                ausgabe.append(" ".repeat(Math.max(0, 3 - Integer.toString(l[i]).length())));
+                ausgabe.append(l[i]).append(": E_\\xi = ").append(max[i]).append("\n");
                 if (i > 0) {
-                        for (int m = 0; m < 2-Integer.toString(l[i]).length();
-                                m++) {
-                            ausgabe += " ";
-                        };
-                        ausgabe += "    \\alpha_" + l[i] + " = " + 
-                                max[i-1].divide(max[i]).log().divide(
-                                        Math.log(2)) + "\n";
+                    ausgabe.append(" ".repeat(Math.max(0, 2 - Integer.toString(l[i]).length())));
+                    ausgabe.append("    \\alpha_").append(l[i]).append(" = ").append(max[i - 1].divide(max[i]).log().divide(
+                                Math.log(2))).append("\n");
                 }
-                ausgabe += "\n"; 
+                ausgabe.append("\n");
             }            
             break;
         case 2:
@@ -329,48 +292,46 @@ public class SingulaerGestoerterFall extends BezierKollokation {
                         SingulaerGestoerterFall(k, gitter, epsilon, eta1,
                                 eta2, p, q, f);
                 final BezierSplineFunction g = kollokation.getG();
-                String werte = "", stellen = "";
+                StringBuilder werte = new StringBuilder();
+                StringBuilder stellen = new StringBuilder();
                 for (int j = 0; j < l[i]; j++) {
-                    werte += g.value(kollokation.getXi(j)).toDouble();
-                    stellen += kollokation.getXi(j).toDouble();
-                    werte += ",";
-                    stellen += ",";
+                    werte.append(g.value(kollokation.getXi(j)).toDouble());
+                    stellen.append(kollokation.getXi(j).toDouble());
+                    werte.append(",");
+                    stellen.append(",");
                 }
-                werte += g.value(kollokation.getXi(l[i])).toDouble();
-                stellen += kollokation.getXi(l[i]).toDouble();
-                ausgabe = "g" + k + "_" + l[i] + "_" + Math.abs((int) (epsilon
-                        .log().toDouble() / Math.log(2))) + ":=pointplot([" + 
-                        stellen + " ], [" + werte + "], legend = \"u" + k + 
+                werte.append(g.value(kollokation.getXi(l[i])).toDouble());
+                stellen.append(kollokation.getXi(l[i]).toDouble());
+                ausgabe = new StringBuilder("g" + k + "_" + l[i] + "_" + Math.abs((int) (epsilon
+                        .log().toDouble() / Math.log(2))) + ":=pointplot([" +
+                        stellen + " ], [" + werte + "], legend = \"u" + k +
                         "_" + l[i] + "_" + Math.abs((int) (epsilon.log()
-                                .toDouble() / Math.log(10)))+"\", color = \""+
-                                Linienfarbe.values()[i]+"\", connect =true):";
+                        .toDouble() / Math.log(10))) + "\", color = \"" +
+                        Linienfarbe.values()[i] + "\", connect =true):");
             }
             break;
         case 3:
-            for (int i = 0; i < l.length; i++) {
-                Gitter<Dfp> gitter = new BakhvalovGitter(l[i], s, t, qu,sigma,
-                        epsilon, epsilon);               
-                        final SingulaerGestoerterFall kollokation = new 
+            for (int value : l) {
+                Gitter<Dfp> gitter = new BakhvalovGitter(value, s, t, qu, sigma,
+                        epsilon, epsilon);
+                final SingulaerGestoerterFall kollokation = new
                         SingulaerGestoerterFall(k, gitter, epsilon, eta1,
-                                eta2, p, q, f);
+                        eta2, p, q, f);
                 final BezierSplineFunction g = kollokation.getG();
-                ausgabe += "g(" + s + ") = " + g.value(s) + "\n";
-                for (int j = 1; j <= l[i] * k; j++) {
+                ausgabe.append("g(").append(s).append(") = ").append(g.value(s)).append("\n");
+                for (int j = 1; j <= value * k; j++) {
                     Dfp temp = kollokation.getTau(j);
-                    ausgabe += "tau" + j + " = " + temp.toDouble() + 
-                            ": -epsilon g'' - p * g' + q * g - f = " + 
-                            (epsilon.negate().multiply(g.derivative(temp, 2))
-                                    .subtract(p.value(temp)
-                                            .multiply(g.derivative(temp, 1)))
-                                    .add(q.value(temp).multiply
-                                            (g.derivative(temp, 0)))
-                                    .subtract(f.value(temp)))
-                            + "\n";
+                    ausgabe.append("tau").append(j).append(" = ").append(temp.toDouble()).append(": -epsilon g'' - p * g' + q * g - f = ").append(epsilon.negate().multiply(g.derivative(temp, 2))
+                            .subtract(p.value(temp)
+                                    .multiply(g.derivative(temp, 1)))
+                            .add(q.value(temp).multiply
+                                    (g.derivative(temp, 0)))
+                            .subtract(f.value(temp))).append("\n");
                 }
-                ausgabe += "g(" + t + ")= " + g.value(t);
+                ausgabe.append("g(").append(t).append(")= ").append(g.value(t));
             }
         }
-        return ausgabe;
+        return ausgabe.toString();
     }
     
     /**
@@ -379,7 +340,7 @@ public class SingulaerGestoerterFall extends BezierKollokation {
      */
     public static void main (String[] args) {
         DfpField koerper = new DfpField(BezierKollokation.getGenauigkeit());
-        int kleinstesL = 3, größtesL = 6, deltaL = größtesL - kleinstesL;
+        int kleinstesL = 3, groesstesL = 6, deltaL = groesstesL - kleinstesL;
         int[] l = new int[deltaL + 1];
         l[0] = (int) Math.pow(2, kleinstesL);
         for (int i = 1; i <= deltaL; i++) {
@@ -387,11 +348,11 @@ public class SingulaerGestoerterFall extends BezierKollokation {
         }
         Dfp[] epsilon = new Dfp[] {koerper.newDfp(10).pow(-24),
                 koerper.newDfp(10).pow(-36), koerper.newDfp(10).pow(-48)};
-        for (int i = 0; i < epsilon.length; i++) {
-            for (int k : new int[] {1, 2, 4}) {
-              System.out.println(berechneReaktion(k, l, epsilon[i], 1));
+        for (Dfp dfp : epsilon) {
+            for (int k : new int[]{1, 2, 4}) {
+                System.out.println(berechneReaktion(k, l, dfp, 1));
 //                System.out.println(berechneKonvektion(k, l, epsilon[i],11));
-            }      
+            }
         }
     }
 }
