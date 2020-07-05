@@ -2,7 +2,7 @@ import org.apache.commons.math3.dfp.Dfp;
 import org.apache.commons.math3.dfp.DfpField;
 
 /**
- * Erzeugt ein Feld, das für einen übergebenen Paramter $k$ die
+ * Erzeugt ein Feld, das für einen übergebenen Parameter $k$ die
  * Nullstellen des $k$-ten Legendre-Polynoms bereitstellt.
  */
 public class GaussLegendrePunkte {
